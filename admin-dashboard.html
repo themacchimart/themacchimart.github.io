@@ -311,6 +311,19 @@ body{
   color:#667784;
 }
 
+
+/* DELIVERY MANAGEMENT */
+.delivery-form{display:none;border-top:1px solid #e3e8eb;padding-top:20px;margin-top:10px}
+.delivery-form.show{display:block}
+.delivery-list{display:grid;gap:12px}
+.delivery-card{border:1px solid #e2e8ec;border-radius:12px;padding:15px;display:grid;grid-template-columns:1.4fr 1fr 1fr 150px;gap:15px;align-items:center}
+.delivery-name{font-weight:bold;font-size:17px}
+.delivery-meta{font-size:13px;color:#687780;margin-top:4px}
+.delivery-value{font-weight:bold;color:#0d88ad}
+.delivery-actions{display:flex;flex-direction:column;gap:7px}
+.delivery-actions button{border:0;padding:9px;border-radius:7px;cursor:pointer;font-weight:bold}
+@media(max-width:700px){.delivery-card{grid-template-columns:1fr}.delivery-actions{display:grid;grid-template-columns:1fr 1fr}}
+
 @media(max-width:700px){
 
   .stats{grid-template-columns:1fr}
@@ -559,6 +572,57 @@ In Stock
 
 </section>
 
+
+
+<!-- DELIVERY MANAGEMENT -->
+<section class="section">
+  <div class="section-title">
+    <div>
+      <h3>🚚 Delivery Management</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">Manage delivery areas, charges and minimum order.</p>
+    </div>
+    <button id="openDeliveryBtn" class="btn green">+ Add Delivery Area</button>
+  </div>
+
+  <div id="deliveryForm" class="delivery-form">
+    <h3 id="deliveryFormTitle" style="margin-bottom:18px;">Add Delivery Area</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Area Name *</label>
+        <input id="deliveryAreaName" type="text" placeholder="Example: Vile Parle">
+      </div>
+      <div class="form-group">
+        <label>Delivery Charge ₹ *</label>
+        <input id="deliveryCharge" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="form-group">
+        <label>Minimum Order ₹</label>
+        <input id="minimumOrder" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="check-row">
+          <label><input id="deliveryActive" type="checkbox" checked> Delivery Active</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button id="saveDeliveryBtn" class="btn green">Save Delivery Area</button>
+      <button id="cancelDeliveryBtn" class="btn gray">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">
+    <h3>Delivery Areas & Charges</h3>
+    <button id="refreshDeliveryBtn" class="btn primary">Refresh</button>
+  </div>
+  <div id="deliveryContainer" class="delivery-list">
+    <div class="loading">Loading delivery areas...</div>
+  </div>
+</section>
+
 </main>
 
 
@@ -631,6 +695,11 @@ const formTitle =
 document.getElementById("formTitle");
 
 let editingProductId = null;
+let editingDeliveryId = null;
+
+const deliveryContainer = document.getElementById("deliveryContainer");
+const deliveryForm = document.getElementById("deliveryForm");
+const deliveryFormTitle = document.getElementById("deliveryFormTitle");
 
 
 /* STATUS */
@@ -671,6 +740,7 @@ onAuthStateChanged(auth,async user=>{
   }
 
   await loadProducts();
+  await loadDeliveryAreas();
 
 });
 
@@ -1411,6 +1481,145 @@ document
 .getElementById("refreshBtn")
 .addEventListener("click",loadProducts);
 
+
+/* DELIVERY MANAGEMENT */
+
+async function loadDeliveryAreas(){
+  deliveryContainer.innerHTML='<div class="loading">Loading delivery areas...</div>';
+  try{
+    const snapshot=await getDocs(collection(db,"deliveryAreas"));
+    const areas=[];
+    snapshot.forEach(item=>areas.push({firestoreId:item.id,...item.data()}));
+    areas.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+    renderDeliveryAreas(areas);
+  }catch(error){
+    console.error(error);
+    deliveryContainer.innerHTML='<div class="loading">Unable to load delivery areas.</div>';
+    showStatus("Unable to load delivery areas.","error");
+  }
+}
+
+function renderDeliveryAreas(areas){
+  deliveryContainer.innerHTML="";
+  if(areas.length===0){
+    deliveryContainer.innerHTML='<div class="loading">No delivery areas found. Add your first area.</div>';
+    return;
+  }
+  areas.forEach(area=>{
+    const id=area.firestoreId;
+    const card=document.createElement("div");
+    card.className="delivery-card";
+    card.innerHTML=`
+      <div>
+        <div class="delivery-name">${area.name||"Unnamed Area"}</div>
+        <div class="delivery-meta">${area.active!==false ? "Delivery Active" : "Delivery OFF"}</div>
+      </div>
+      <div><div class="delivery-meta">Delivery Charge</div><div class="delivery-value">₹${Number(area.charge||0)}</div></div>
+      <div><div class="delivery-meta">Minimum Order</div><div class="delivery-value">₹${Number(area.minimumOrder||0)}</div></div>
+      <div class="delivery-actions">
+        <button class="${area.active!==false ? "stock-on" : "stock-off"}" data-delivery-status="${id}" data-value="${area.active!==false}">${area.active!==false ? "ON" : "OFF"}</button>
+        <button class="edit-btn" data-delivery-edit="${id}">Edit</button>
+        <button class="delete-btn" data-delivery-delete="${id}">Delete</button>
+      </div>`;
+    deliveryContainer.appendChild(card);
+  });
+
+  document.querySelectorAll("[data-delivery-status]").forEach(button=>{
+    button.addEventListener("click",async()=>{
+      const current=button.dataset.value==="true";
+      try{
+        await updateDoc(doc(db,"deliveryAreas",button.dataset.deliveryStatus),{active:!current});
+        showStatus(!current ? "Delivery area turned ON." : "Delivery area turned OFF.","success");
+        await loadDeliveryAreas();
+      }catch(error){console.error(error);showStatus("Unable to update delivery status.","error");}
+    });
+  });
+
+  document.querySelectorAll("[data-delivery-edit]").forEach(button=>{
+    button.addEventListener("click",()=>editDeliveryArea(button.dataset.deliveryEdit));
+  });
+  document.querySelectorAll("[data-delivery-delete]").forEach(button=>{
+    button.addEventListener("click",()=>removeDeliveryArea(button.dataset.deliveryDelete));
+  });
+}
+
+function resetDeliveryForm(){
+  editingDeliveryId=null;
+  document.getElementById("deliveryAreaName").value="";
+  document.getElementById("deliveryCharge").value="0";
+  document.getElementById("minimumOrder").value="0";
+  document.getElementById("deliveryActive").checked=true;
+  deliveryFormTitle.textContent="Add Delivery Area";
+}
+
+document.getElementById("openDeliveryBtn").addEventListener("click",()=>{
+  resetDeliveryForm();
+  deliveryForm.classList.add("show");
+  deliveryForm.scrollIntoView({behavior:"smooth"});
+});
+
+document.getElementById("cancelDeliveryBtn").addEventListener("click",()=>{
+  resetDeliveryForm();
+  deliveryForm.classList.remove("show");
+});
+
+document.getElementById("refreshDeliveryBtn").addEventListener("click",loadDeliveryAreas);
+
+document.getElementById("saveDeliveryBtn").addEventListener("click",saveDeliveryArea);
+
+async function saveDeliveryArea(){
+  const name=document.getElementById("deliveryAreaName").value.trim();
+  const charge=Number(document.getElementById("deliveryCharge").value);
+  const minimumOrder=Number(document.getElementById("minimumOrder").value);
+  const active=document.getElementById("deliveryActive").checked;
+  if(!name){showStatus("Delivery area name is required.","error");return;}
+  if(Number.isNaN(charge)||charge<0||Number.isNaN(minimumOrder)||minimumOrder<0){showStatus("Please enter valid delivery values.","error");return;}
+  const data={name,charge,minimumOrder,active};
+  try{
+    if(editingDeliveryId){
+      await updateDoc(doc(db,"deliveryAreas",editingDeliveryId),data);
+      showStatus("Delivery area updated successfully.","success");
+    }else{
+      let documentId=name.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+      if(!documentId) documentId="area-"+Date.now();
+      const existing=await getDoc(doc(db,"deliveryAreas",documentId));
+      if(existing.exists()){showStatus("This delivery area already exists.","error");return;}
+      await setDoc(doc(db,"deliveryAreas",documentId),data);
+      showStatus("Delivery area added successfully.","success");
+    }
+    resetDeliveryForm();
+    deliveryForm.classList.remove("show");
+    await loadDeliveryAreas();
+  }catch(error){console.error(error);showStatus("Unable to save delivery area.","error");}
+}
+
+async function editDeliveryArea(id){
+  try{
+    const snapshot=await getDoc(doc(db,"deliveryAreas",id));
+    if(!snapshot.exists()){showStatus("Delivery area not found.","error");return;}
+    const area=snapshot.data();
+    editingDeliveryId=id;
+    document.getElementById("deliveryAreaName").value=area.name||"";
+    document.getElementById("deliveryCharge").value=Number(area.charge||0);
+    document.getElementById("minimumOrder").value=Number(area.minimumOrder||0);
+    document.getElementById("deliveryActive").checked=area.active!==false;
+    deliveryFormTitle.textContent="Edit Delivery Area - "+(area.name||"");
+    deliveryForm.classList.add("show");
+    deliveryForm.scrollIntoView({behavior:"smooth"});
+  }catch(error){console.error(error);showStatus("Unable to open delivery area.","error");}
+}
+
+async function removeDeliveryArea(id){
+  try{
+    const snapshot=await getDoc(doc(db,"deliveryAreas",id));
+    if(!snapshot.exists()){showStatus("Delivery area not found.","error");return;}
+    const area=snapshot.data();
+    if(!confirm(`Delete delivery area "${area.name||"this area"}"?`)) return;
+    await deleteDoc(doc(db,"deliveryAreas",id));
+    showStatus("Delivery area deleted successfully.","success");
+    await loadDeliveryAreas();
+  }catch(error){console.error(error);showStatus("Unable to delete delivery area.","error");}
+}
 
 /* LOGOUT */
 
