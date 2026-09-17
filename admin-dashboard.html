@@ -88,7 +88,7 @@ body{
 
 .stats{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(4,1fr);
   gap:15px;
   margin-bottom:25px;
 }
@@ -226,7 +226,7 @@ body{
   border-radius:12px;
   padding:15px;
   display:grid;
-  grid-template-columns:70px 1fr 150px 135px;
+  grid-template-columns:70px 1fr 145px 165px 135px;
   gap:15px;
   align-items:center;
 }
@@ -276,6 +276,51 @@ body{
   border-radius:7px;
   font-size:15px;
 }
+
+.stock-box label{
+  display:block;
+  font-size:12px;
+  margin-bottom:5px;
+  color:#687780;
+}
+
+.stock-row{
+  display:grid;
+  grid-template-columns:1fr 70px;
+  gap:6px;
+}
+
+.stock-input,
+.stock-unit-input{
+  width:100%;
+  padding:10px;
+  border:1px solid #ccd6dc;
+  border-radius:7px;
+  font-size:14px;
+}
+
+.stock-save-btn{
+  width:100%;
+  margin-top:7px;
+  border:0;
+  padding:9px;
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:bold;
+  background:#6f42c1;
+  color:white;
+}
+
+.stock-note{
+  margin-top:6px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.stock-normal{color:#176b3a}
+.stock-low{color:#b36b00}
+.stock-zero{color:#a92c2c}
+.stock-unset{color:#687780}
 
 .actions{
   display:flex;
@@ -342,6 +387,7 @@ body{
   }
 
   .price-box,
+  .stock-box,
   .actions{
     grid-column:1/-1;
   }
@@ -411,6 +457,11 @@ body{
   <strong id="outStockCount">0</strong>
 </div>
 
+<div class="stat-card">
+  <span>Low Stock</span>
+  <strong id="lowStockCount">0</strong>
+</div>
+
 </section>
 
 
@@ -473,6 +524,21 @@ body{
 <div class="form-group">
 <label>Unit</label>
 <input id="unit" type="text" value="kg" placeholder="kg / 100 pcs">
+</div>
+
+<div class="form-group">
+<label>Stock Quantity</label>
+<input id="stockQuantity" type="number" min="0" step="0.01" placeholder="Example: 8">
+</div>
+
+<div class="form-group">
+<label>Stock Unit</label>
+<input id="stockUnit" type="text" value="kg" placeholder="kg / packs / pcs">
+</div>
+
+<div class="form-group">
+<label>Low Stock Alert At</label>
+<input id="lowStockThreshold" type="number" min="0" step="0.01" value="2">
 </div>
 
 <div class="form-group full">
@@ -688,6 +754,9 @@ document.getElementById("inStockCount");
 const outStockCount =
 document.getElementById("outStockCount");
 
+const lowStockCount =
+document.getElementById("lowStockCount");
+
 const productForm =
 document.getElementById("productForm");
 
@@ -829,6 +898,43 @@ function renderProducts(products){
     const id=product.firestoreId;
     const image=product.image||"logo.png";
 
+    const hasManagedStock =
+      product.stockQuantity !== undefined &&
+      product.stockQuantity !== null &&
+      product.stockQuantity !== "" &&
+      Number.isFinite(Number(product.stockQuantity));
+
+    const stockQuantity =
+      hasManagedStock
+      ? Number(product.stockQuantity)
+      : "";
+
+    const stockUnit =
+      product.stockUnit ||
+      product.unit ||
+      "kg";
+
+    const lowStockThreshold =
+      Number.isFinite(Number(product.lowStockThreshold))
+      ? Number(product.lowStockThreshold)
+      : 2;
+
+    let stockStatusText="Stock not set";
+    let stockStatusClass="stock-unset";
+
+    if(hasManagedStock){
+      if(Number(stockQuantity)<=0){
+        stockStatusText="Out of Stock";
+        stockStatusClass="stock-zero";
+      }else if(Number(stockQuantity)<=lowStockThreshold){
+        stockStatusText=`⚠ Low Stock: ${stockQuantity} ${stockUnit}`;
+        stockStatusClass="stock-low";
+      }else{
+        stockStatusText=`Stock: ${stockQuantity} ${stockUnit}`;
+        stockStatusClass="stock-normal";
+      }
+    }
+
     card.innerHTML=`
 
       <img
@@ -872,6 +978,43 @@ function renderProducts(products){
           step="1"
           value="${Number(product.price||0)}"
         >
+
+      </div>
+
+
+      <div class="stock-box">
+
+        <label>Stock Quantity</label>
+
+        <div class="stock-row">
+          <input
+            class="stock-input"
+            id="stock-qty-${id}"
+            type="number"
+            min="0"
+            step="0.01"
+            value="${stockQuantity}"
+            placeholder="Qty"
+          >
+
+          <input
+            class="stock-unit-input"
+            id="stock-unit-${id}"
+            type="text"
+            value="${stockUnit}"
+            placeholder="kg"
+          >
+        </div>
+
+        <button
+          class="stock-save-btn"
+          data-save-stock="${id}">
+          Save Stock
+        </button>
+
+        <div class="stock-note ${stockStatusClass}">
+          ${stockStatusText}
+        </div>
 
       </div>
 
@@ -925,6 +1068,20 @@ function renderProducts(products){
 
       await saveRate(
         button.dataset.save
+      );
+
+    });
+
+  });
+
+
+  document.querySelectorAll("[data-save-stock]")
+  .forEach(button=>{
+
+    button.addEventListener("click",async()=>{
+
+      await saveStockQuantity(
+        button.dataset.saveStock
       );
 
     });
@@ -1027,6 +1184,78 @@ async function saveRate(id){
 
 /* STOCK */
 
+async function saveStockQuantity(id){
+
+  const quantityInput=
+    document.getElementById(`stock-qty-${id}`);
+
+  const unitInput=
+    document.getElementById(`stock-unit-${id}`);
+
+  if(!quantityInput||!unitInput){
+    return;
+  }
+
+  const rawQuantity=
+    quantityInput.value.trim();
+
+  if(rawQuantity===""){
+    showStatus(
+      "Please enter stock quantity.",
+      "error"
+    );
+    return;
+  }
+
+  const stockQuantity=
+    Number(rawQuantity);
+
+  const stockUnit=
+    unitInput.value.trim()||"kg";
+
+  if(
+    Number.isNaN(stockQuantity)||
+    stockQuantity<0
+  ){
+    showStatus(
+      "Please enter a valid stock quantity.",
+      "error"
+    );
+    return;
+  }
+
+  try{
+
+    await updateDoc(
+      doc(db,"products",id),
+      {
+        stockQuantity,
+        stockUnit,
+        inStock:stockQuantity>0
+      }
+    );
+
+    showStatus(
+      stockQuantity>0
+      ? `Stock updated: ${stockQuantity} ${stockUnit}.`
+      : "Stock is 0. Product marked Out of Stock.",
+      "success"
+    );
+
+    await loadProducts();
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to update stock quantity.",
+      "error"
+    );
+  }
+}
+
+
 async function changeStock(id,newStatus){
 
   try{
@@ -1120,6 +1349,22 @@ async function editProduct(id){
     document.getElementById("unit").value=
     p.unit||"kg";
 
+    document.getElementById("stockQuantity").value=
+    (
+      p.stockQuantity!==undefined &&
+      p.stockQuantity!==null
+    )
+    ? Number(p.stockQuantity)
+    : "";
+
+    document.getElementById("stockUnit").value=
+    p.stockUnit||p.unit||"kg";
+
+    document.getElementById("lowStockThreshold").value=
+    Number.isFinite(Number(p.lowStockThreshold))
+    ? Number(p.lowStockThreshold)
+    : 2;
+
     document.getElementById("options").value=
     Array.isArray(p.options)
     ? p.options.join(", ")
@@ -1193,6 +1438,24 @@ async function saveProduct(){
   document.getElementById("unit")
   .value.trim()||"kg";
 
+  const stockQuantityText=
+  document.getElementById("stockQuantity")
+  .value.trim();
+
+  const stockQuantity=
+  stockQuantityText===""
+  ? null
+  : Number(stockQuantityText);
+
+  const stockUnit=
+  document.getElementById("stockUnit")
+  .value.trim()||unit||"kg";
+
+  const lowStockThreshold=
+  Number(
+    document.getElementById("lowStockThreshold").value
+  );
+
   const optionText=
   document.getElementById("options")
   .value.trim();
@@ -1245,6 +1508,35 @@ async function saveProduct(){
     return;
   }
 
+  if(
+    stockQuantity!==null &&
+    (
+      Number.isNaN(stockQuantity)||
+      stockQuantity<0
+    )
+  ){
+
+    showStatus(
+      "Please enter a valid stock quantity.",
+      "error"
+    );
+
+    return;
+  }
+
+  if(
+    Number.isNaN(lowStockThreshold)||
+    lowStockThreshold<0
+  ){
+
+    showStatus(
+      "Please enter a valid low stock alert quantity.",
+      "error"
+    );
+
+    return;
+  }
+
 
   const data={
     name,
@@ -1253,12 +1545,18 @@ async function saveProduct(){
     price,
     priceType,
     unit,
+    stockQuantity,
+    stockUnit,
+    lowStockThreshold,
     options,
     image,
     description,
     sortOrder,
     cleaning,
-    inStock
+    inStock:
+      stockQuantity===null
+      ? inStock
+      : stockQuantity>0
   };
 
 
@@ -1431,6 +1729,9 @@ function resetForm(){
   document.getElementById("productPrice").value="0";
   document.getElementById("priceType").value="today";
   document.getElementById("unit").value="kg";
+  document.getElementById("stockQuantity").value="";
+  document.getElementById("stockUnit").value="kg";
+  document.getElementById("lowStockThreshold").value="2";
   document.getElementById("options").value="";
   document.getElementById("image").value="";
   document.getElementById("description").value="";
@@ -1471,6 +1772,31 @@ function updateStats(products){
 
   outStockCount.textContent=
   products.length-available;
+
+  const lowStock=
+  products.filter(p=>{
+
+    const qty=
+      Number(p.stockQuantity);
+
+    const threshold=
+      Number.isFinite(Number(p.lowStockThreshold))
+      ? Number(p.lowStockThreshold)
+      : 2;
+
+    return (
+      p.stockQuantity!==undefined &&
+      p.stockQuantity!==null &&
+      p.stockQuantity!=="" &&
+      Number.isFinite(qty) &&
+      qty>0 &&
+      qty<=threshold
+    );
+
+  }).length;
+
+  lowStockCount.textContent=
+  lowStock;
 
 }
 
