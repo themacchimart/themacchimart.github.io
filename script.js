@@ -11,11 +11,13 @@
 const WHATSAPP_NUMBER = "918652065885";
 
 const DELIVERY_AREAS = [
-  "Vile Parle",
-  "Andheri",
-  "Jogeshwari",
-  "Bhandup"
+  { name: "Vile Parle", deliveryCharge: 30, minimumOrder: 500, active: true },
+  { name: "Andheri", deliveryCharge: 30, minimumOrder: 300, active: true },
+  { name: "Jogeshwari", deliveryCharge: 30, minimumOrder: 300, active: true },
+  { name: "Bhandup", deliveryCharge: 30, minimumOrder: 300, active: true }
 ];
+
+let liveDeliveryAreas = [...DELIVERY_AREAS];
 
 
 /* =========================================================
@@ -266,6 +268,94 @@ async function loadFirebaseProducts() {
         )
       );
 
+    // Load live delivery areas from Firestore.
+    // If this fails or no active areas exist,
+    // fallback areas remain available.
+    try {
+
+      const deliverySnapshot =
+        await getDocs(
+          collection(
+            db,
+            "deliveryAreas"
+          )
+        );
+
+
+      const fetchedAreas = [];
+
+
+      deliverySnapshot.forEach(
+        (areaDocument) => {
+
+          const area =
+            areaDocument.data();
+
+
+          if (area.active !== false) {
+
+            fetchedAreas.push({
+
+              firestoreId:
+                areaDocument.id,
+
+              name:
+                area.name ||
+                area.areaName ||
+                areaDocument.id,
+
+              deliveryCharge:
+                Number(
+                  area.deliveryCharge ??
+                  area.charge ??
+                  0
+                ) || 0,
+
+              minimumOrder:
+                Number(
+                  area.minimumOrder ??
+                  0
+                ) || 0,
+
+              active: true
+
+            });
+
+          }
+
+        }
+      );
+
+
+      if (fetchedAreas.length > 0) {
+
+        fetchedAreas.sort(
+          (a, b) =>
+            String(a.name)
+              .localeCompare(
+                String(b.name)
+              )
+        );
+
+        liveDeliveryAreas =
+          fetchedAreas;
+
+      }
+
+
+      console.log(
+        "Firebase delivery areas loaded successfully."
+      );
+
+    } catch (deliveryError) {
+
+      console.error(
+        "Firebase delivery area loading failed:",
+        deliveryError
+      );
+
+    }
+
 
     snapshot.forEach(
       (documentSnapshot) => {
@@ -337,27 +427,17 @@ async function loadFirebaseProducts() {
 
         if (index !== -1) {
 
-          /*
-            Merge Firebase values over
-            the existing static product.
-          */
-
           Object.assign(
             products[index],
             firebaseProduct
           );
 
 
-          /*
-            Keep the static numeric ID.
-
-            This prevents cart onclick
-            problems if Firestore has no ID.
-          */
-
           if (
             !Number.isFinite(
-              Number(products[index].id)
+              Number(
+                products[index].id
+              )
             )
           ) {
 
@@ -367,13 +447,6 @@ async function loadFirebaseProducts() {
           }
 
         } else {
-
-          /*
-            Future support:
-            If admin creates a completely
-            new product in Firestore,
-            it can also appear on website.
-          */
 
           const newProduct = {
 
@@ -426,10 +499,6 @@ async function loadFirebaseProducts() {
     );
 
 
-    /*
-      Sort using sortOrder when available.
-    */
-
     products.sort(
       (a, b) => {
 
@@ -464,12 +533,6 @@ async function loadFirebaseProducts() {
     displayProducts();
 
   } catch (error) {
-
-    /*
-      IMPORTANT:
-      Website continues working with
-      products.js if Firebase fails.
-    */
 
     console.error(
       "Firebase product loading failed:",
@@ -793,8 +856,7 @@ function createProductCard(product) {
             background:white;
           "
         >
-
-          <option value="Whole / No Cleaning">
+                  <option value="Whole / No Cleaning">
             Whole / No Cleaning
           </option>
 
@@ -1627,17 +1689,38 @@ function showCheckoutForm() {
           Select delivery area
         </option>
 
-        ${DELIVERY_AREAS
+        ${liveDeliveryAreas
+          .filter(
+            (area) => area.active !== false
+          )
           .map(
             (area) => `
-              <option value="${area}">
-                ${area}
+              <option
+                value="${area.name}"
+                data-charge="${Number(area.deliveryCharge || 0)}"
+                data-minimum="${Number(area.minimumOrder || 0)}"
+              >
+                ${area.name} — ₹${formatPrice(area.deliveryCharge || 0)} delivery
               </option>
             `
           )
           .join("")}
 
       </select>
+
+      <div
+        id="deliverySummary"
+        style="
+          display:none;
+          margin:-4px 0 16px;
+          padding:12px;
+          border-radius:10px;
+          background:#f2f8fa;
+          color:#294454;
+          font-size:12px;
+          line-height:1.6;
+        "
+      ></div>
 
 
       <label
@@ -1732,6 +1815,17 @@ function showCheckoutForm() {
   `;
 
 
+  const checkoutArea =
+    document.getElementById("customerArea");
+
+  if (checkoutArea) {
+    checkoutArea.addEventListener(
+      "change",
+      updateCheckoutDeliverySummary
+    );
+  }
+
+
   const cartFooter =
     document.querySelector(
       ".cart-footer"
@@ -1744,6 +1838,179 @@ function showCheckoutForm() {
       "none";
 
   }
+
+}
+
+
+/* =========================================================
+   DELIVERY CHECKOUT HELPERS
+========================================================= */
+
+function getCartKnownTotal() {
+
+  return cart.reduce(
+    (total, item) => {
+
+      if (
+        item.todayRate ||
+        item.price === null
+      ) {
+        return total;
+      }
+
+      return (
+        total +
+        Number(item.price || 0) *
+        Number(item.quantity || 0)
+      );
+
+    },
+    0
+  );
+
+}
+
+
+function cartHasUnknownRate() {
+
+  return cart.some(
+    (item) =>
+      item.todayRate ||
+      item.price === null
+  );
+
+}
+
+
+function getSelectedDeliveryArea() {
+
+  const areaElement =
+    document.getElementById(
+      "customerArea"
+    );
+
+  if (!areaElement) {
+    return null;
+  }
+
+  const selectedName =
+    areaElement.value.trim();
+
+  if (!selectedName) {
+    return null;
+  }
+
+  return (
+    liveDeliveryAreas.find(
+      (area) =>
+        String(area.name)
+          .trim()
+          .toLowerCase() ===
+        selectedName.toLowerCase()
+    ) || null
+  );
+
+}
+
+
+function updateCheckoutDeliverySummary() {
+
+  const summary =
+    document.getElementById(
+      "deliverySummary"
+    );
+
+  if (!summary) {
+    return;
+  }
+
+  const area =
+    getSelectedDeliveryArea();
+
+  if (!area) {
+    summary.style.display = "none";
+    summary.innerHTML = "";
+    return;
+  }
+
+  const subtotal =
+    getCartKnownTotal();
+
+  const hasUnknown =
+    cartHasUnknownRate();
+
+  const charge =
+    Number(
+      area.deliveryCharge || 0
+    );
+
+  const minimum =
+    Number(
+      area.minimumOrder || 0
+    );
+
+  const finalKnownTotal =
+    subtotal + charge;
+
+  let minimumText = "";
+
+  if (
+    !hasUnknown &&
+    minimum > 0 &&
+    subtotal < minimum
+  ) {
+
+    minimumText = `
+      <div style="color:#b23a2a;font-weight:800;">
+        Minimum order for ${area.name} is
+        ₹${formatPrice(minimum)}.
+        Add ₹${formatPrice(minimum - subtotal)} more.
+      </div>
+    `;
+
+  } else if (
+    hasUnknown &&
+    minimum > 0
+  ) {
+
+    minimumText = `
+      <div style="color:#7a5b13;">
+        Minimum order: ₹${formatPrice(minimum)}.
+        Final minimum-order check will be confirmed
+        after today's-rate items are priced.
+      </div>
+    `;
+
+  } else if (minimum > 0) {
+
+    minimumText = `
+      <div style="color:#176b3a;font-weight:700;">
+        Minimum order ₹${formatPrice(minimum)} ✓
+      </div>
+    `;
+
+  }
+
+  summary.style.display = "block";
+
+  summary.innerHTML = `
+    <strong>${area.name}</strong><br>
+    Product Subtotal:
+    ₹${formatPrice(subtotal)}
+    ${hasUnknown ? " + Today's Rate" : ""}
+    <br>
+    Delivery Charge:
+    ₹${formatPrice(charge)}
+    <br>
+    <strong>
+      ${
+        hasUnknown
+          ? `Known Total: ₹${formatPrice(finalKnownTotal)} + Today's Rate`
+          : `Final Total: ₹${formatPrice(finalKnownTotal)}`
+      }
+    </strong>
+    ${minimumText}
+  `;
 
 }
 
@@ -1768,8 +2035,6 @@ function restoreCartFooter() {
   }
 
 }
-
-
 /* =========================================================
    SEND WHATSAPP ORDER
 ========================================================= */
@@ -1882,6 +2147,66 @@ function sendWhatsAppOrder() {
     );
 
     addressElement.focus();
+
+    return;
+
+  }
+
+
+  const selectedDeliveryArea =
+    getSelectedDeliveryArea();
+
+
+  if (!selectedDeliveryArea) {
+
+    alert(
+      "This delivery area is currently unavailable. Please select an active delivery area."
+    );
+
+    areaElement.focus();
+
+    return;
+
+  }
+
+
+  const checkoutKnownTotal =
+    getCartKnownTotal();
+
+
+  const checkoutHasUnknownRate =
+    cartHasUnknownRate();
+
+
+  const deliveryCharge =
+    Number(
+      selectedDeliveryArea.deliveryCharge || 0
+    );
+
+
+  const minimumOrder =
+    Number(
+      selectedDeliveryArea.minimumOrder || 0
+    );
+
+
+  /*
+    Minimum order validation.
+
+    If all products have known rates,
+    customer cannot proceed below
+    the area's minimum order.
+  */
+
+  if (
+    !checkoutHasUnknownRate &&
+    minimumOrder > 0 &&
+    checkoutKnownTotal < minimumOrder
+  ) {
+
+    alert(
+      `Minimum order for ${selectedDeliveryArea.name} is ₹${formatPrice(minimumOrder)}. Please add ₹${formatPrice(minimumOrder - checkoutKnownTotal)} more to your cart.`
+    );
 
     return;
 
@@ -2005,15 +2330,23 @@ function sendWhatsAppOrder() {
     "━━━━━━━━━━━━━━━━━━\n";
 
 
+  /*
+    Product subtotal
+  */
+
   if (
     knownTotal > 0
   ) {
 
     message +=
-      `💰 *Known Total: ₹${formatPrice(knownTotal)}*\n`;
+      `💰 *Product Subtotal: ₹${formatPrice(knownTotal)}*\n`;
 
   }
 
+
+  /*
+    Products without current rate
+  */
 
   if (hasTodayRate) {
 
@@ -2023,9 +2356,50 @@ function sendWhatsAppOrder() {
   }
 
 
+  /*
+    Delivery information
+  */
+
+  message +=
+    `🚚 Delivery Area: ${selectedDeliveryArea.name}\n`;
+
+  message +=
+    `🚚 Delivery Charge: ₹${formatPrice(deliveryCharge)}\n`;
+
+  message +=
+    `📦 Minimum Order: ₹${formatPrice(minimumOrder)}\n`;
+
+
+  /*
+    Final total
+  */
+
+  if (!hasTodayRate) {
+
+    message +=
+      `💳 *FINAL TOTAL: ₹${formatPrice(
+        knownTotal +
+        deliveryCharge
+      )}*\n`;
+
+  } else {
+
+    message +=
+      `💳 *Known Total + Delivery: ₹${formatPrice(
+        knownTotal +
+        deliveryCharge
+      )} + Today's Rate*\n`;
+
+  }
+
+
   message +=
     "━━━━━━━━━━━━━━━━━━\n";
 
+
+  /*
+    Optional customer note
+  */
 
   if (customerNote) {
 
@@ -2036,8 +2410,12 @@ function sendWhatsAppOrder() {
 
 
   message +=
-    "\nPlease confirm availability, final price and delivery charges.";
+    "\nPlease confirm availability and final price for any today's-rate items.";
 
+
+  /*
+    Open WhatsApp
+  */
 
   const whatsappURL =
 
@@ -2185,7 +2563,12 @@ if (currentYear) {
 
 /*
   First show static products immediately.
-  Then Firebase updates matching products.
+
+  Then Firebase loads:
+  - live products
+  - live delivery areas
+  - delivery charges
+  - minimum orders
 */
 
 displayProducts();
