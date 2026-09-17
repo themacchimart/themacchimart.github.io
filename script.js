@@ -21,13 +21,15 @@ let liveDeliveryAreas = [...DELIVERY_AREAS];
 
 const FREE_DELIVERY_THRESHOLD = 600;
 
-const DELIVERY_TIME_SLOTS = [
-  "7:00 AM - 8:00 AM",
-  "8:00 AM - 9:00 AM",
-  "9:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "11:00 AM - 12:00 PM"
+const DEFAULT_DELIVERY_SLOTS = [
+  { id: "7-8", label: "7:00 AM - 8:00 AM", active: true, sortOrder: 1 },
+  { id: "8-9", label: "8:00 AM - 9:00 AM", active: true, sortOrder: 2 },
+  { id: "9-10", label: "9:00 AM - 10:00 AM", active: true, sortOrder: 3 },
+  { id: "10-11", label: "10:00 AM - 11:00 AM", active: true, sortOrder: 4 },
+  { id: "11-12", label: "11:00 AM - 12:00 PM", active: true, sortOrder: 5 }
 ];
+
+let liveDeliverySlots = [...DEFAULT_DELIVERY_SLOTS];
 
 // Delivery is available only on:
 // Sunday (0), Wednesday (3), Friday (5)
@@ -456,6 +458,59 @@ async function loadFirebaseProducts() {
       console.error(
         "Firebase delivery area loading failed:",
         deliveryError
+      );
+    }
+
+
+    // Load live delivery slot availability from Firestore.
+    // If unavailable, the default slots above remain as fallback.
+    try {
+      const slotSnapshot =
+        await getDocs(
+          collection(
+            db,
+            "deliverySlots"
+          )
+        );
+
+      const fetchedSlots = [];
+
+      slotSnapshot.forEach(
+        (slotDocument) => {
+          const slot = slotDocument.data();
+
+          fetchedSlots.push({
+            id: slotDocument.id,
+            label:
+              slot.label ||
+              slot.name ||
+              slotDocument.id,
+            active:
+              slot.active !== false,
+            sortOrder:
+              Number(slot.sortOrder || 999)
+          });
+        }
+      );
+
+      if (fetchedSlots.length > 0) {
+        fetchedSlots.sort(
+          (a, b) =>
+            Number(a.sortOrder || 999) -
+            Number(b.sortOrder || 999)
+        );
+
+        liveDeliverySlots = fetchedSlots;
+      }
+
+      console.log(
+        "Firebase delivery slots loaded successfully."
+      );
+
+    } catch (slotError) {
+      console.error(
+        "Firebase delivery slot loading failed:",
+        slotError
       );
     }
 
@@ -1933,17 +1988,36 @@ function showCheckoutForm() {
           Select delivery time
         </option>
 
-        ${DELIVERY_TIME_SLOTS
+        ${liveDeliverySlots
+          .filter(
+            (slot) => slot.active !== false
+          )
           .map(
             (slot) => `
-              <option value="${slot}">
-                ${slot}
+              <option value="${slot.label}">
+                ${slot.label}
               </option>
             `
           )
           .join("")}
 
       </select>
+
+      ${liveDeliverySlots.some((slot) => slot.active !== false)
+        ? ""
+        : `
+          <div style="
+            margin:-4px 0 15px;
+            padding:11px;
+            border-radius:9px;
+            background:#fdeaea;
+            color:#a52a2a;
+            font-size:12px;
+            font-weight:700;
+          ">
+            No delivery time slots are available right now.
+          </div>
+        `}
 
 
       <label
@@ -2473,6 +2547,27 @@ function sendWhatsAppOrder() {
 
     alert(
       "Please select your delivery time slot."
+    );
+
+    timeSlotElement.focus();
+
+    return;
+
+  }
+
+
+  const selectedSlotAvailable =
+    liveDeliverySlots.some(
+      (slot) =>
+        slot.active !== false &&
+        String(slot.label).trim() ===
+          customerTimeSlot
+    );
+
+  if (!selectedSlotAvailable) {
+
+    alert(
+      "This delivery time slot is currently unavailable. Please select another slot."
     );
 
     timeSlotElement.focus();
