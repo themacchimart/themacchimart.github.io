@@ -132,6 +132,135 @@ function formatPrice(price) {
 }
 
 
+/* =========================================================
+   WEBSITE MAINTENANCE MODE
+========================================================= */
+
+function escapeHTML(value) {
+
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+
+function showMaintenanceScreen(message) {
+
+  if (
+    document.getElementById(
+      "siteMaintenanceScreen"
+    )
+  ) {
+    return;
+  }
+
+  const screen =
+    document.createElement("div");
+
+  screen.id =
+    "siteMaintenanceScreen";
+
+  screen.style.cssText = `
+    position:fixed;
+    inset:0;
+    z-index:999999;
+    background:linear-gradient(160deg,#f7fbfd 0%,#eaf4f8 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    font-family:Arial,sans-serif;
+  `;
+
+  const safeMessage =
+    escapeHTML(
+      message ||
+      "We are updating our shop. Please check back shortly."
+    );
+
+  screen.innerHTML = `
+    <div style="
+      width:min(520px,100%);
+      background:white;
+      border-radius:24px;
+      padding:36px 28px;
+      text-align:center;
+      box-shadow:0 18px 60px rgba(7,52,77,.14);
+    ">
+      <img
+        src="logo.png"
+        alt="The Macchi Mart"
+        style="width:110px;height:110px;object-fit:contain;margin-bottom:18px;"
+      >
+
+      <div style="
+        display:inline-block;
+        padding:7px 12px;
+        border-radius:999px;
+        background:#fff3cd;
+        color:#7a5b13;
+        font-size:12px;
+        font-weight:800;
+        margin-bottom:16px;
+      ">
+        🛠 UNDER MAINTENANCE
+      </div>
+
+      <h1 style="
+        margin:0 0 10px;
+        color:#07344d;
+        font-size:30px;
+      ">
+        The Macchi Mart
+      </h1>
+
+      <p style="
+        margin:0 auto 22px;
+        color:#667784;
+        font-size:15px;
+        line-height:1.7;
+        max-width:420px;
+      ">
+        ${safeMessage}
+      </p>
+
+      <a
+        href="https://wa.me/${WHATSAPP_NUMBER}"
+        target="_blank"
+        rel="noopener"
+        style="
+          display:inline-block;
+          text-decoration:none;
+          background:#1f9d68;
+          color:white;
+          padding:13px 20px;
+          border-radius:12px;
+          font-weight:800;
+        "
+      >
+        💬 Contact on WhatsApp
+      </a>
+
+      <p style="
+        margin:18px 0 0;
+        color:#9aa7ae;
+        font-size:11px;
+      ">
+        From Ocean to Plate
+      </p>
+    </div>
+  `;
+
+  document.body.appendChild(screen);
+  document.body.style.overflow = "hidden";
+
+}
+
+
 /*
   IMPORTANT:
 
@@ -373,7 +502,9 @@ async function loadFirebaseProducts() {
     const {
       getFirestore,
       collection,
-      getDocs
+      getDocs,
+      doc,
+      getDoc
     } =
       await import(
         "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
@@ -388,6 +519,49 @@ async function loadFirebaseProducts() {
 
     const db =
       getFirestore(app);
+
+
+    // Check maintenance mode before loading the shop.
+    try {
+
+      const maintenanceSnapshot =
+        await getDoc(
+          doc(
+            db,
+            "siteSettings",
+            "main"
+          )
+        );
+
+      if (maintenanceSnapshot.exists()) {
+
+        const settings =
+          maintenanceSnapshot.data();
+
+        if (settings.maintenanceMode === true) {
+
+          showMaintenanceScreen(
+            settings.maintenanceMessage
+          );
+
+          console.log(
+            "Website maintenance mode is ON."
+          );
+
+          return;
+
+        }
+
+      }
+
+    } catch (maintenanceError) {
+
+      console.error(
+        "Unable to read maintenance setting:",
+        maintenanceError
+      );
+
+    }
 
 
     const snapshot =
