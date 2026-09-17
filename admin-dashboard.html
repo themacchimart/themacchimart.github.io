@@ -367,6 +367,43 @@ body{
 .delivery-value{font-weight:bold;color:#0d88ad}
 .delivery-actions{display:flex;flex-direction:column;gap:7px}
 .delivery-actions button{border:0;padding:9px;border-radius:7px;cursor:pointer;font-weight:bold}
+/* DELIVERY SLOT AVAILABILITY */
+
+.slot-list{
+  display:grid;
+  gap:12px;
+}
+
+.slot-card{
+  border:1px solid #e2e8ec;
+  border-radius:12px;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 150px;
+  align-items:center;
+  gap:12px;
+}
+
+.slot-name{
+  font-weight:bold;
+  font-size:16px;
+}
+
+.slot-meta{
+  font-size:12px;
+  color:#6f7f88;
+  margin-top:4px;
+}
+
+.slot-actions button{
+  width:100%;
+  border:0;
+  padding:10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
 @media(max-width:700px){.delivery-card{grid-template-columns:1fr}.delivery-actions{display:grid;grid-template-columns:1fr 1fr}}
 
 @media(max-width:700px){
@@ -395,6 +432,10 @@ body{
   .actions{
     display:grid;
     grid-template-columns:1fr 1fr;
+  }
+
+  .slot-card{
+    grid-template-columns:1fr;
   }
 
   .brand h1{font-size:16px}
@@ -689,6 +730,22 @@ In Stock
   </div>
 </section>
 
+<section class="section">
+  <div class="section-title">
+    <div>
+      <h3>⏰ Delivery Slot Availability</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">
+        Turn time slots ON/OFF. These slots apply to Sunday, Wednesday and Friday deliveries.
+      </p>
+    </div>
+    <button id="refreshSlotsBtn" class="btn primary">Refresh Slots</button>
+  </div>
+
+  <div id="slotContainer" class="slot-list">
+    <div class="loading">Loading delivery slots...</div>
+  </div>
+</section>
+
 </main>
 
 
@@ -770,6 +827,16 @@ const deliveryContainer = document.getElementById("deliveryContainer");
 const deliveryForm = document.getElementById("deliveryForm");
 const deliveryFormTitle = document.getElementById("deliveryFormTitle");
 
+const slotContainer = document.getElementById("slotContainer");
+
+const DEFAULT_DELIVERY_SLOTS = [
+  { id: "7-8", label: "7:00 AM - 8:00 AM", sortOrder: 1 },
+  { id: "8-9", label: "8:00 AM - 9:00 AM", sortOrder: 2 },
+  { id: "9-10", label: "9:00 AM - 10:00 AM", sortOrder: 3 },
+  { id: "10-11", label: "10:00 AM - 11:00 AM", sortOrder: 4 },
+  { id: "11-12", label: "11:00 AM - 12:00 PM", sortOrder: 5 }
+];
+
 
 /* STATUS */
 
@@ -810,6 +877,7 @@ onAuthStateChanged(auth,async user=>{
 
   await loadProducts();
   await loadDeliveryAreas();
+  await loadDeliverySlots();
 
 });
 
@@ -1946,6 +2014,202 @@ async function removeDeliveryArea(id){
     await loadDeliveryAreas();
   }catch(error){console.error(error);showStatus("Unable to delete delivery area.","error");}
 }
+
+/* DELIVERY SLOT AVAILABILITY */
+
+async function ensureDefaultDeliverySlots(){
+
+  const snapshot=
+    await getDocs(
+      collection(db,"deliverySlots")
+    );
+
+  if(!snapshot.empty){
+    return;
+  }
+
+  for(const slot of DEFAULT_DELIVERY_SLOTS){
+
+    await setDoc(
+      doc(db,"deliverySlots",slot.id),
+      {
+        label:slot.label,
+        active:true,
+        sortOrder:slot.sortOrder
+      }
+    );
+
+  }
+
+}
+
+
+async function loadDeliverySlots(){
+
+  if(!slotContainer){
+    return;
+  }
+
+  slotContainer.innerHTML=
+    '<div class="loading">Loading delivery slots...</div>';
+
+  try{
+
+    await ensureDefaultDeliverySlots();
+
+    const snapshot=
+      await getDocs(
+        collection(db,"deliverySlots")
+      );
+
+    const slots=[];
+
+    snapshot.forEach(item=>{
+
+      slots.push({
+        firestoreId:item.id,
+        ...item.data()
+      });
+
+    });
+
+    slots.sort(
+      (a,b)=>
+        Number(a.sortOrder||999)-
+        Number(b.sortOrder||999)
+    );
+
+    renderDeliverySlots(slots);
+
+  }catch(error){
+
+    console.error(error);
+
+    slotContainer.innerHTML=
+      '<div class="loading">Unable to load delivery slots.</div>';
+
+    showStatus(
+      "Unable to load delivery slots. Check Firestore rules.",
+      "error"
+    );
+
+  }
+
+}
+
+
+function renderDeliverySlots(slots){
+
+  slotContainer.innerHTML="";
+
+  if(slots.length===0){
+
+    slotContainer.innerHTML=
+      '<div class="loading">No delivery slots found.</div>';
+
+    return;
+  }
+
+  slots.forEach(slot=>{
+
+    const id=slot.firestoreId;
+    const isActive=slot.active!==false;
+
+    const card=
+      document.createElement("div");
+
+    card.className="slot-card";
+
+    card.innerHTML=`
+      <div>
+        <div class="slot-name">
+          ${slot.label||"Delivery Slot"}
+        </div>
+        <div class="slot-meta">
+          ${isActive ? "Available for customers" : "Not available for customers"}
+        </div>
+      </div>
+
+      <div class="slot-actions">
+        <button
+          class="${isActive ? "stock-on" : "stock-off"}"
+          data-slot-status="${id}"
+          data-value="${isActive}"
+        >
+          ${isActive ? "AVAILABLE" : "UNAVAILABLE"}
+        </button>
+      </div>
+    `;
+
+    slotContainer.appendChild(card);
+
+  });
+
+
+  document
+    .querySelectorAll("[data-slot-status]")
+    .forEach(button=>{
+
+      button.addEventListener(
+        "click",
+        async()=>{
+
+          const current=
+            button.dataset.value==="true";
+
+          try{
+
+            await updateDoc(
+              doc(
+                db,
+                "deliverySlots",
+                button.dataset.slotStatus
+              ),
+              {
+                active:!current
+              }
+            );
+
+            showStatus(
+              !current
+                ? "Delivery slot is now AVAILABLE."
+                : "Delivery slot is now UNAVAILABLE.",
+              "success"
+            );
+
+            await loadDeliverySlots();
+
+          }catch(error){
+
+            console.error(error);
+
+            showStatus(
+              "Unable to update delivery slot.",
+              "error"
+            );
+
+          }
+
+        }
+      );
+
+    });
+
+}
+
+
+const refreshSlotsBtn=
+  document.getElementById("refreshSlotsBtn");
+
+if(refreshSlotsBtn){
+
+  refreshSlotsBtn.addEventListener(
+    "click",
+    loadDeliverySlots
+  );
+
+}
+
 
 /* LOGOUT */
 
