@@ -24,8 +24,15 @@ const FREE_DELIVERY_THRESHOLD = 600;
 const DELIVERY_TIME_SLOTS = [
   "7:00 AM - 8:00 AM",
   "8:00 AM - 9:00 AM",
-  "9:00 AM - 10:00 AM"
+  "9:00 AM - 10:00 AM",
+  "10:00 AM - 11:00 AM",
+  "11:00 AM - 12:00 PM"
 ];
+
+// Delivery is available only on:
+// Sunday (0), Wednesday (3), Friday (5)
+const DELIVERY_DAYS = [0, 3, 5];
+const DELIVERY_DATE_COUNT = 12;
 
 
 /* =========================================================
@@ -183,6 +190,119 @@ function getWeightMultiplier(weight) {
   }
 
   return 1;
+
+}
+
+
+/* =========================================================
+   DELIVERY DATE HELPERS
+========================================================= */
+
+function toLocalDateValue(date) {
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+
+}
+
+
+function formatDeliveryDateLabel(date) {
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      weekday: "long",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
+
+}
+
+
+function getUpcomingDeliveryDates(
+  count = DELIVERY_DATE_COUNT
+) {
+
+  const dates = [];
+  const cursor = new Date();
+
+  // Noon avoids edge cases around daylight/timezone changes.
+  cursor.setHours(12, 0, 0, 0);
+
+  while (dates.length < count) {
+
+    if (
+      DELIVERY_DAYS.includes(
+        cursor.getDay()
+      )
+    ) {
+
+      dates.push({
+        value: toLocalDateValue(cursor),
+        label: formatDeliveryDateLabel(cursor)
+      });
+
+    }
+
+    cursor.setDate(
+      cursor.getDate() + 1
+    );
+
+  }
+
+  return dates;
+
+}
+
+
+function isAllowedDeliveryDate(value) {
+
+  if (!value) {
+    return false;
+  }
+
+  const selected =
+    new Date(`${value}T12:00:00`);
+
+  if (Number.isNaN(selected.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const selectedDay = new Date(selected);
+  selectedDay.setHours(0, 0, 0, 0);
+
+  return (
+    selectedDay >= today &&
+    DELIVERY_DAYS.includes(
+      selected.getDay()
+    )
+  );
+
+}
+
+
+function getDeliveryDateLabel(value) {
+
+  if (!value) {
+    return "";
+  }
+
+  const date =
+    new Date(`${value}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return formatDeliveryDateLabel(date);
 
 }
 
@@ -1742,6 +1862,57 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
+        DELIVERY DATE *
+      </label>
+
+
+      <select
+        id="customerDeliveryDate"
+        style="
+          width:100%;
+          padding:13px;
+          margin-bottom:8px;
+          border:1px solid #dbe5e9;
+          border-radius:10px;
+          background:white;
+        "
+      >
+
+        <option value="">
+          Select delivery date
+        </option>
+
+        ${getUpcomingDeliveryDates()
+          .map(
+            (item) => `
+              <option value="${item.value}">
+                ${item.label}
+              </option>
+            `
+          )
+          .join("")}
+
+      </select>
+
+      <div
+        style="
+          margin-bottom:15px;
+          font-size:11px;
+          color:#667784;
+        "
+      >
+        Delivery available only on Sunday, Wednesday & Friday.
+      </div>
+
+
+      <label
+        style="
+          display:block;
+          font-size:12px;
+          font-weight:800;
+          margin-bottom:5px;
+        "
+      >
         DELIVERY TIME SLOT *
       </label>
 
@@ -2166,6 +2337,11 @@ function sendWhatsAppOrder() {
       "customerArea"
     );
 
+  const deliveryDateElement =
+    document.getElementById(
+      "customerDeliveryDate"
+    );
+
   const timeSlotElement =
     document.getElementById(
       "customerTimeSlot"
@@ -2186,6 +2362,7 @@ function sendWhatsAppOrder() {
     !nameElement ||
     !mobileElement ||
     !areaElement ||
+    !deliveryDateElement ||
     !timeSlotElement ||
     !addressElement
   ) {
@@ -2205,6 +2382,9 @@ function sendWhatsAppOrder() {
 
   const customerArea =
     areaElement.value.trim();
+
+  const customerDeliveryDate =
+    deliveryDateElement.value.trim();
 
   const customerTimeSlot =
     timeSlotElement.value.trim();
@@ -2253,6 +2433,36 @@ function sendWhatsAppOrder() {
     );
 
     areaElement.focus();
+
+    return;
+
+  }
+
+
+  if (!customerDeliveryDate) {
+
+    alert(
+      "Please select your delivery date."
+    );
+
+    deliveryDateElement.focus();
+
+    return;
+
+  }
+
+
+  if (
+    !isAllowedDeliveryDate(
+      customerDeliveryDate
+    )
+  ) {
+
+    alert(
+      "Delivery is available only on Sunday, Wednesday and Friday. Please select an available delivery date."
+    );
+
+    deliveryDateElement.focus();
 
     return;
 
@@ -2374,6 +2584,9 @@ function sendWhatsAppOrder() {
 
   message +=
     `Area: ${customerArea}\n`;
+
+  message +=
+    `Delivery Date: ${getDeliveryDateLabel(customerDeliveryDate)}\n`;
 
   message +=
     `Delivery Time: ${customerTimeSlot}\n`;
