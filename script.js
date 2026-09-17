@@ -19,6 +19,14 @@ const DELIVERY_AREAS = [
 
 let liveDeliveryAreas = [...DELIVERY_AREAS];
 
+const FREE_DELIVERY_THRESHOLD = 600;
+
+const DELIVERY_TIME_SLOTS = [
+  "7:00 AM - 8:00 AM",
+  "8:00 AM - 9:00 AM",
+  "9:00 AM - 10:00 AM"
+];
+
 
 /* =========================================================
    FIREBASE SETTINGS
@@ -269,10 +277,8 @@ async function loadFirebaseProducts() {
       );
 
     // Load live delivery areas from Firestore.
-    // If this fails or no active areas exist,
-    // fallback areas remain available.
+    // If this fails or no active areas exist, fallback areas remain available.
     try {
-
       const deliverySnapshot =
         await getDocs(
           collection(
@@ -281,79 +287,56 @@ async function loadFirebaseProducts() {
           )
         );
 
-
       const fetchedAreas = [];
-
 
       deliverySnapshot.forEach(
         (areaDocument) => {
-
-          const area =
-            areaDocument.data();
-
+          const area = areaDocument.data();
 
           if (area.active !== false) {
-
             fetchedAreas.push({
-
-              firestoreId:
-                areaDocument.id,
-
+              firestoreId: areaDocument.id,
               name:
                 area.name ||
                 area.areaName ||
                 areaDocument.id,
-
               deliveryCharge:
                 Number(
                   area.deliveryCharge ??
                   area.charge ??
                   0
                 ) || 0,
-
               minimumOrder:
                 Number(
                   area.minimumOrder ??
                   0
                 ) || 0,
-
               active: true
-
             });
-
           }
-
         }
       );
 
-
       if (fetchedAreas.length > 0) {
-
         fetchedAreas.sort(
           (a, b) =>
-            String(a.name)
-              .localeCompare(
-                String(b.name)
-              )
+            String(a.name).localeCompare(
+              String(b.name)
+            )
         );
 
-        liveDeliveryAreas =
-          fetchedAreas;
-
+        liveDeliveryAreas = fetchedAreas;
       }
-
 
       console.log(
         "Firebase delivery areas loaded successfully."
       );
 
     } catch (deliveryError) {
-
       console.error(
         "Firebase delivery area loading failed:",
         deliveryError
       );
-
     }
 
 
@@ -427,17 +410,27 @@ async function loadFirebaseProducts() {
 
         if (index !== -1) {
 
+          /*
+            Merge Firebase values over
+            the existing static product.
+          */
+
           Object.assign(
             products[index],
             firebaseProduct
           );
 
 
+          /*
+            Keep the static numeric ID.
+
+            This prevents cart onclick
+            problems if Firestore has no ID.
+          */
+
           if (
             !Number.isFinite(
-              Number(
-                products[index].id
-              )
+              Number(products[index].id)
             )
           ) {
 
@@ -447,6 +440,13 @@ async function loadFirebaseProducts() {
           }
 
         } else {
+
+          /*
+            Future support:
+            If admin creates a completely
+            new product in Firestore,
+            it can also appear on website.
+          */
 
           const newProduct = {
 
@@ -499,6 +499,10 @@ async function loadFirebaseProducts() {
     );
 
 
+    /*
+      Sort using sortOrder when available.
+    */
+
     products.sort(
       (a, b) => {
 
@@ -533,6 +537,12 @@ async function loadFirebaseProducts() {
     displayProducts();
 
   } catch (error) {
+
+    /*
+      IMPORTANT:
+      Website continues working with
+      products.js if Firebase fails.
+    */
 
     console.error(
       "Firebase product loading failed:",
@@ -856,7 +866,8 @@ function createProductCard(product) {
             background:white;
           "
         >
-                  <option value="Whole / No Cleaning">
+
+          <option value="Whole / No Cleaning">
             Whole / No Cleaning
           </option>
 
@@ -1731,6 +1742,47 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
+        DELIVERY TIME SLOT *
+      </label>
+
+
+      <select
+        id="customerTimeSlot"
+        style="
+          width:100%;
+          padding:13px;
+          margin-bottom:15px;
+          border:1px solid #dbe5e9;
+          border-radius:10px;
+          background:white;
+        "
+      >
+
+        <option value="">
+          Select delivery time
+        </option>
+
+        ${DELIVERY_TIME_SLOTS
+          .map(
+            (slot) => `
+              <option value="${slot}">
+                ${slot}
+              </option>
+            `
+          )
+          .join("")}
+
+      </select>
+
+
+      <label
+        style="
+          display:block;
+          font-size:12px;
+          font-weight:800;
+          margin-bottom:5px;
+        "
+      >
         FULL DELIVERY ADDRESS *
       </label>
 
@@ -1913,6 +1965,27 @@ function getSelectedDeliveryArea() {
 }
 
 
+function getEffectiveDeliveryCharge(
+  area,
+  subtotal
+) {
+
+  if (
+    Number(subtotal) >=
+    FREE_DELIVERY_THRESHOLD
+  ) {
+
+    return 0;
+
+  }
+
+  return Number(
+    area?.deliveryCharge || 0
+  );
+
+}
+
+
 function updateCheckoutDeliverySummary() {
 
   const summary =
@@ -1939,9 +2012,15 @@ function updateCheckoutDeliverySummary() {
   const hasUnknown =
     cartHasUnknownRate();
 
-  const charge =
+  const normalCharge =
     Number(
       area.deliveryCharge || 0
+    );
+
+  const deliveryCharge =
+    getEffectiveDeliveryCharge(
+      area,
+      subtotal
     );
 
   const minimum =
@@ -1950,7 +2029,12 @@ function updateCheckoutDeliverySummary() {
     );
 
   const finalKnownTotal =
-    subtotal + charge;
+    subtotal + deliveryCharge;
+
+  const freeDelivery =
+    deliveryCharge === 0 &&
+    normalCharge > 0 &&
+    subtotal >= FREE_DELIVERY_THRESHOLD;
 
   let minimumText = "";
 
@@ -1961,7 +2045,7 @@ function updateCheckoutDeliverySummary() {
   ) {
 
     minimumText = `
-      <div style="color:#b23a2a;font-weight:800;">
+      <div style="color:#b23a2a;font-weight:800;margin-top:7px;">
         Minimum order for ${area.name} is
         ₹${formatPrice(minimum)}.
         Add ₹${formatPrice(minimum - subtotal)} more.
@@ -1974,7 +2058,7 @@ function updateCheckoutDeliverySummary() {
   ) {
 
     minimumText = `
-      <div style="color:#7a5b13;">
+      <div style="color:#7a5b13;margin-top:7px;">
         Minimum order: ₹${formatPrice(minimum)}.
         Final minimum-order check will be confirmed
         after today's-rate items are priced.
@@ -1984,10 +2068,30 @@ function updateCheckoutDeliverySummary() {
   } else if (minimum > 0) {
 
     minimumText = `
-      <div style="color:#176b3a;font-weight:700;">
+      <div style="color:#176b3a;font-weight:700;margin-top:7px;">
         Minimum order ₹${formatPrice(minimum)} ✓
       </div>
     `;
+
+  }
+
+  let deliveryText = "";
+
+  if (freeDelivery) {
+
+    deliveryText = `
+      <span style="color:#176b3a;font-weight:800;">
+        FREE ✓
+      </span>
+      <span style="text-decoration:line-through;color:#82949e;margin-left:5px;">
+        ₹${formatPrice(normalCharge)}
+      </span>
+    `;
+
+  } else {
+
+    deliveryText =
+      `₹${formatPrice(deliveryCharge)}`;
 
   }
 
@@ -2000,7 +2104,7 @@ function updateCheckoutDeliverySummary() {
     ${hasUnknown ? " + Today's Rate" : ""}
     <br>
     Delivery Charge:
-    ₹${formatPrice(charge)}
+    ${deliveryText}
     <br>
     <strong>
       ${
@@ -2009,10 +2113,14 @@ function updateCheckoutDeliverySummary() {
           : `Final Total: ₹${formatPrice(finalKnownTotal)}`
       }
     </strong>
+    <div style="margin-top:7px;color:#176b3a;font-weight:700;">
+      Free delivery on product orders of ₹${formatPrice(FREE_DELIVERY_THRESHOLD)} or more.
+    </div>
     ${minimumText}
   `;
 
 }
+
 
 
 /* =========================================================
@@ -2035,6 +2143,8 @@ function restoreCartFooter() {
   }
 
 }
+
+
 /* =========================================================
    SEND WHATSAPP ORDER
 ========================================================= */
@@ -2056,6 +2166,11 @@ function sendWhatsAppOrder() {
       "customerArea"
     );
 
+  const timeSlotElement =
+    document.getElementById(
+      "customerTimeSlot"
+    );
+
   const addressElement =
     document.getElementById(
       "customerAddress"
@@ -2071,6 +2186,7 @@ function sendWhatsAppOrder() {
     !nameElement ||
     !mobileElement ||
     !areaElement ||
+    !timeSlotElement ||
     !addressElement
   ) {
 
@@ -2089,6 +2205,9 @@ function sendWhatsAppOrder() {
 
   const customerArea =
     areaElement.value.trim();
+
+  const customerTimeSlot =
+    timeSlotElement.value.trim();
 
   const customerAddress =
     addressElement.value.trim();
@@ -2140,6 +2259,19 @@ function sendWhatsAppOrder() {
   }
 
 
+  if (!customerTimeSlot) {
+
+    alert(
+      "Please select your delivery time slot."
+    );
+
+    timeSlotElement.focus();
+
+    return;
+
+  }
+
+
   if (!customerAddress) {
 
     alert(
@@ -2155,7 +2287,6 @@ function sendWhatsAppOrder() {
 
   const selectedDeliveryArea =
     getSelectedDeliveryArea();
-
 
   if (!selectedDeliveryArea) {
 
@@ -2173,30 +2304,30 @@ function sendWhatsAppOrder() {
   const checkoutKnownTotal =
     getCartKnownTotal();
 
-
   const checkoutHasUnknownRate =
     cartHasUnknownRate();
 
-
-  const deliveryCharge =
+  const normalDeliveryCharge =
     Number(
       selectedDeliveryArea.deliveryCharge || 0
     );
 
+  const deliveryCharge =
+    getEffectiveDeliveryCharge(
+      selectedDeliveryArea,
+      checkoutKnownTotal
+    );
+
+  const freeDelivery =
+    deliveryCharge === 0 &&
+    normalDeliveryCharge > 0 &&
+    checkoutKnownTotal >= FREE_DELIVERY_THRESHOLD;
 
   const minimumOrder =
     Number(
       selectedDeliveryArea.minimumOrder || 0
     );
 
-
-  /*
-    Minimum order validation.
-
-    If all products have known rates,
-    customer cannot proceed below
-    the area's minimum order.
-  */
 
   if (
     !checkoutHasUnknownRate &&
@@ -2243,6 +2374,9 @@ function sendWhatsAppOrder() {
 
   message +=
     `Area: ${customerArea}\n`;
+
+  message +=
+    `Delivery Time: ${customerTimeSlot}\n`;
 
   message +=
     `Address: ${customerAddress}\n\n`;
@@ -2330,23 +2464,15 @@ function sendWhatsAppOrder() {
     "━━━━━━━━━━━━━━━━━━\n";
 
 
-  /*
-    Product subtotal
-  */
-
   if (
     knownTotal > 0
   ) {
 
     message +=
-      `💰 *Product Subtotal: ₹${formatPrice(knownTotal)}*\n`;
+      `💰 *Known Total: ₹${formatPrice(knownTotal)}*\n`;
 
   }
 
-
-  /*
-    Products without current rate
-  */
 
   if (hasTodayRate) {
 
@@ -2356,39 +2482,33 @@ function sendWhatsAppOrder() {
   }
 
 
-  /*
-    Delivery information
-  */
-
-  message +=
-    `🚚 Delivery Area: ${selectedDeliveryArea.name}\n`;
-
-  message +=
-    `🚚 Delivery Charge: ₹${formatPrice(deliveryCharge)}\n`;
-
-  message +=
-    `📦 Minimum Order: ₹${formatPrice(minimumOrder)}\n`;
-
-
-  /*
-    Final total
-  */
-
-  if (!hasTodayRate) {
+  if (freeDelivery) {
 
     message +=
-      `💳 *FINAL TOTAL: ₹${formatPrice(
-        knownTotal +
-        deliveryCharge
-      )}*\n`;
+      `🚚 Delivery Charge (${selectedDeliveryArea.name}): *FREE* (₹${formatPrice(normalDeliveryCharge)} waived)\n`;
 
   } else {
 
     message +=
-      `💳 *Known Total + Delivery: ₹${formatPrice(
-        knownTotal +
-        deliveryCharge
-      )} + Today's Rate*\n`;
+      `🚚 Delivery Charge (${selectedDeliveryArea.name}): ₹${formatPrice(deliveryCharge)}\n`;
+
+  }
+
+  message +=
+    `🎁 Free Delivery: Orders ₹${formatPrice(FREE_DELIVERY_THRESHOLD)}+\n`;
+
+  message +=
+    `📦 Minimum Order: ₹${formatPrice(minimumOrder)}\n`;
+
+  if (!hasTodayRate) {
+
+    message +=
+      `💳 *FINAL TOTAL: ₹${formatPrice(knownTotal + deliveryCharge)}*\n`;
+
+  } else {
+
+    message +=
+      `💳 *Known Total + Delivery: ₹${formatPrice(knownTotal + deliveryCharge)} + Today's Rate*\n`;
 
   }
 
@@ -2396,10 +2516,6 @@ function sendWhatsAppOrder() {
   message +=
     "━━━━━━━━━━━━━━━━━━\n";
 
-
-  /*
-    Optional customer note
-  */
 
   if (customerNote) {
 
@@ -2412,10 +2528,6 @@ function sendWhatsAppOrder() {
   message +=
     "\nPlease confirm availability and final price for any today's-rate items.";
 
-
-  /*
-    Open WhatsApp
-  */
 
   const whatsappURL =
 
@@ -2563,12 +2675,8 @@ if (currentYear) {
 
 /*
   First show static products immediately.
-
-  Then Firebase loads:
-  - live products
-  - live delivery areas
-  - delivery charges
-  - minimum orders
+  Then Firebase updates matching products
+  and loads live delivery areas.
 */
 
 displayProducts();
