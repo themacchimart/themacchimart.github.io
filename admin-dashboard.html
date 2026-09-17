@@ -1,1422 +1,1429 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>The Macchi Mart - Admin Dashboard</title>
+<title>The Macchi Mart - Admin Dashboard</title>
+<link rel="icon" href="logo.png">
 
-  <link rel="icon" href="logo.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+body{
+  font-family:Arial,sans-serif;
+  background:#f4f7f9;
+  color:#102f44;
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f7f9;
-      color: #102f44;
-    }
+.header{
+  background:#07344d;
+  color:white;
+  padding:15px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
 
-    .header {
-      background: #07344d;
-      color: white;
-      padding: 15px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+.brand img{
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:3px;
+}
 
-    .brand img {
-      width: 52px;
-      height: 52px;
-      object-fit: contain;
-      background: white;
-      border-radius: 10px;
-      padding: 3px;
-    }
+.brand h1{font-size:20px}
+.brand p{font-size:12px;opacity:.8;margin-top:3px}
 
-    .brand h1 {
-      font-size: 20px;
-    }
+.logout-btn{
+  border:0;
+  background:#e74c3c;
+  color:white;
+  padding:10px 15px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
 
-    .brand p {
-      font-size: 12px;
-      opacity: 0.8;
-      margin-top: 3px;
-    }
+.container{
+  max-width:1150px;
+  margin:auto;
+  padding:25px 16px 50px;
+}
 
-    .logout-btn {
-      border: none;
-      background: #e74c3c;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.welcome{margin-bottom:20px}
+.welcome h2{font-size:26px;margin-bottom:6px}
+.welcome p{color:#667784}
 
-    .container {
-      max-width: 1100px;
-      margin: auto;
-      padding: 25px 16px 50px;
-    }
+.status{
+  padding:12px 15px;
+  border-radius:8px;
+  margin-bottom:20px;
+  display:none;
+}
 
-    .welcome {
-      margin-bottom: 25px;
-    }
+.status.success{
+  display:block;
+  background:#e8f7ee;
+  color:#176b3a;
+}
 
-    .welcome h2 {
-      font-size: 26px;
-      margin-bottom: 6px;
-    }
+.status.error{
+  display:block;
+  background:#fdeaea;
+  color:#a52a2a;
+}
 
-    .welcome p {
-      color: #667784;
-    }
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+  margin-bottom:25px;
+}
 
-    .status {
-      padding: 12px 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: none;
-    }
+.stat-card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 4px 16px rgba(0,0,0,.06);
+}
 
-    .status.success {
-      display: block;
-      background: #e8f7ee;
-      color: #176b3a;
-    }
+.stat-card span{
+  font-size:13px;
+  color:#71808a;
+}
 
-    .status.error {
-      display: block;
-      background: #fdeaea;
-      color: #a52a2a;
-    }
+.stat-card strong{
+  display:block;
+  margin-top:8px;
+  font-size:28px;
+  color:#0d88ad;
+}
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 25px;
-    }
+.section{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,.06);
+  margin-bottom:20px;
+}
 
-    .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-    }
+.section-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
 
-    .stat-card span {
-      font-size: 13px;
-      color: #71808a;
-    }
+.section-title h3{font-size:20px}
 
-    .stat-card strong {
-      display: block;
-      margin-top: 8px;
-      font-size: 28px;
-      color: #0d88ad;
-    }
+.top-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 
-    .section {
-      background: white;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-      margin-bottom: 20px;
-    }
+.btn{
+  border:0;
+  padding:10px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
 
-    .section-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
+.primary{background:#0d88ad;color:white}
+.green{background:#176b3a;color:white}
+.red{background:#e74c3c;color:white}
+.gray{background:#e9eef1;color:#294454}
 
-    .section-title h3 {
-      font-size: 20px;
-    }
+/* FORM */
 
-    .section-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+.product-form{
+  display:none;
+  border-top:1px solid #e3e8eb;
+  padding-top:20px;
+}
 
-    .refresh-btn,
-    .import-btn {
-      border: none;
-      color: white;
-      padding: 9px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+.product-form.show{display:block}
 
-    .refresh-btn {
-      background: #0d88ad;
-    }
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
 
-    .import-btn {
-      background: #176b3a;
-    }
+.form-group label{
+  display:block;
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:6px;
+}
 
-    .import-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+.form-group input,
+.form-group select,
+.form-group textarea{
+  width:100%;
+  padding:11px;
+  border:1px solid #ccd6dc;
+  border-radius:8px;
+  font-size:15px;
+  background:white;
+}
 
-    .products {
-      display: grid;
-      gap: 14px;
-    }
+.form-group textarea{
+  min-height:90px;
+  resize:vertical;
+}
 
-    .product {
-      border: 1px solid #e2e8ec;
-      border-radius: 12px;
-      padding: 15px;
-      display: grid;
-      grid-template-columns: 70px 1fr 150px 120px;
-      gap: 15px;
-      align-items: center;
-    }
+.full{grid-column:1/-1}
 
-    .product img {
-      width: 65px;
-      height: 65px;
-      border-radius: 10px;
-      object-fit: cover;
-      background: #f1f1f1;
-    }
+.check-row{
+  display:flex;
+  gap:25px;
+  flex-wrap:wrap;
+  padding:5px 0;
+}
 
-    .product-name {
-      font-weight: bold;
-      font-size: 17px;
-    }
+.check-row label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:normal;
+}
 
-    .marathi-name {
-      color: #0d88ad;
-      font-size: 13px;
-      margin-top: 3px;
-    }
+.check-row input{width:auto}
 
-    .category {
-      font-size: 13px;
-      color: #7b8991;
-      margin-top: 4px;
-    }
+.form-actions{
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
 
-    .price-box label {
-      display: block;
-      font-size: 12px;
-      margin-bottom: 5px;
-      color: #687780;
-    }
+/* PRODUCTS */
 
-    .price-input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccd6dc;
-      border-radius: 7px;
-      font-size: 15px;
-    }
+.products{
+  display:grid;
+  gap:14px;
+}
 
-    .actions {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
+.product{
+  border:1px solid #e2e8ec;
+  border-radius:12px;
+  padding:15px;
+  display:grid;
+  grid-template-columns:70px 1fr 150px 135px;
+  gap:15px;
+  align-items:center;
+}
 
-    .save-btn {
-      border: none;
-      padding: 9px;
-      border-radius: 7px;
-      background: #0d88ad;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
+.product img{
+  width:65px;
+  height:65px;
+  border-radius:10px;
+  object-fit:cover;
+  background:#f1f1f1;
+}
 
-    .stock-btn {
-      border: none;
-      padding: 9px;
-      border-radius: 7px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+.product-name{
+  font-weight:bold;
+  font-size:17px;
+}
 
-    .stock-on {
-      background: #dcf5e6;
-      color: #14743b;
-    }
+.marathi-name{
+  color:#0d88ad;
+  font-size:13px;
+  margin-top:3px;
+}
 
-    .stock-off {
-      background: #fde2e2;
-      color: #a92c2c;
-    }
+.category{
+  font-size:13px;
+  color:#7b8991;
+  margin-top:4px;
+}
 
-    .loading {
-      padding: 30px;
-      text-align: center;
-      color: #667784;
-    }
+.product-unit{
+  font-size:12px;
+  color:#687780;
+  margin-top:4px;
+}
 
-    @media(max-width: 700px) {
-      .stats {
-        grid-template-columns: 1fr;
-      }
+.price-box label{
+  display:block;
+  font-size:12px;
+  margin-bottom:5px;
+  color:#687780;
+}
 
-      .product {
-        grid-template-columns: 55px 1fr;
-      }
+.price-input{
+  width:100%;
+  padding:10px;
+  border:1px solid #ccd6dc;
+  border-radius:7px;
+  font-size:15px;
+}
 
-      .product img {
-        width: 52px;
-        height: 52px;
-      }
+.actions{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
 
-      .price-box,
-      .actions {
-        grid-column: 1 / -1;
-      }
+.actions button{
+  border:0;
+  padding:9px;
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:bold;
+}
 
-      .actions {
-        flex-direction: row;
-      }
+.save-btn{background:#0d88ad;color:white}
+.edit-btn{background:#f0ad4e;color:#202020}
+.delete-btn{background:#e74c3c;color:white}
 
-      .actions button {
-        flex: 1;
-      }
+.stock-on{
+  background:#dcf5e6;
+  color:#14743b;
+}
 
-      .brand h1 {
-        font-size: 16px;
-      }
+.stock-off{
+  background:#fde2e2;
+  color:#a92c2c;
+}
 
-      .section-actions {
-        width: 100%;
-      }
+.loading{
+  padding:30px;
+  text-align:center;
+  color:#667784;
+}
 
-      .section-actions button {
-        flex: 1;
-      }
-    }
-  </style>
+@media(max-width:700px){
+
+  .stats{grid-template-columns:1fr}
+
+  .form-grid{grid-template-columns:1fr}
+
+  .full{grid-column:auto}
+
+  .product{
+    grid-template-columns:55px 1fr;
+  }
+
+  .product img{
+    width:52px;
+    height:52px;
+  }
+
+  .price-box,
+  .actions{
+    grid-column:1/-1;
+  }
+
+  .actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .brand h1{font-size:16px}
+
+  .top-buttons{
+    width:100%;
+  }
+
+  .top-buttons button{
+    flex:1;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <header class="header">
 
-  <div class="brand">
-    <img src="logo.png" alt="The Macchi Mart Logo">
+<div class="brand">
+  <img src="logo.png" alt="The Macchi Mart Logo">
 
-    <div>
-      <h1>The Macchi Mart</h1>
-      <p>Admin Control Panel</p>
-    </div>
+  <div>
+    <h1>The Macchi Mart</h1>
+    <p>Admin Control Panel</p>
   </div>
+</div>
 
-  <button id="logoutBtn" class="logout-btn">
-    Logout
-  </button>
+<button id="logoutBtn" class="logout-btn">
+  Logout
+</button>
 
 </header>
 
 
 <main class="container">
 
-  <section class="welcome">
-    <h2>Dashboard</h2>
-    <p>Manage fish rates and stock.</p>
-  </section>
+<section class="welcome">
+  <h2>Dashboard</h2>
+  <p>Manage products, fish rates and stock.</p>
+</section>
 
-  <div id="statusMessage" class="status"></div>
-
-
-  <section class="stats">
-
-    <div class="stat-card">
-      <span>Total Products</span>
-      <strong id="totalProducts">0</strong>
-    </div>
-
-    <div class="stat-card">
-      <span>In Stock</span>
-      <strong id="inStockCount">0</strong>
-    </div>
-
-    <div class="stat-card">
-      <span>Out of Stock</span>
-      <strong id="outStockCount">0</strong>
-    </div>
-
-  </section>
+<div id="statusMessage" class="status"></div>
 
 
-  <section class="section">
+<section class="stats">
 
-    <div class="section-title">
+<div class="stat-card">
+  <span>Total Products</span>
+  <strong id="totalProducts">0</strong>
+</div>
 
-      <h3>Products & Today's Rates</h3>
+<div class="stat-card">
+  <span>In Stock</span>
+  <strong id="inStockCount">0</strong>
+</div>
 
-      <div class="section-actions">
+<div class="stat-card">
+  <span>Out of Stock</span>
+  <strong id="outStockCount">0</strong>
+</div>
 
-        <button
-          id="importProductsBtn"
-          class="import-btn"
-          type="button"
-        >
-          + Import Default Products
-        </button>
-
-        <button
-          id="refreshBtn"
-          class="refresh-btn"
-          type="button"
-        >
-          Refresh
-        </button>
-
-      </div>
-
-    </div>
+</section>
 
 
-    <div id="productsContainer" class="products">
+<!-- PRODUCT MANAGEMENT -->
 
-      <div class="loading">
-        Loading products...
-      </div>
+<section class="section">
 
-    </div>
+<div class="section-title">
 
-  </section>
+  <div>
+    <h3>Product Management</h3>
+  </div>
+
+  <button id="openAddBtn" class="btn green">
+    + Add New Product
+  </button>
+
+</div>
+
+
+<div id="productForm" class="product-form">
+
+<h3 id="formTitle" style="margin-bottom:18px;">
+  Add New Product
+</h3>
+
+<div class="form-grid">
+
+<div class="form-group">
+<label>Product Name *</label>
+<input id="productName" type="text" placeholder="Example: Surmai">
+</div>
+
+<div class="form-group">
+<label>Marathi Name</label>
+<input id="marathiName" type="text" placeholder="उदा. सुरमई">
+</div>
+
+<div class="form-group">
+<label>Category *</label>
+<select id="category">
+  <option value="Fresh Fish">Fresh Fish</option>
+  <option value="Dry Fish">Dry Fish</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>Price / Rate *</label>
+<input id="productPrice" type="number" min="0" step="1" value="0">
+</div>
+
+<div class="form-group">
+<label>Price Type</label>
+<select id="priceType">
+  <option value="today">Today's Rate</option>
+  <option value="fixed">Fixed Rate</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>Unit</label>
+<input id="unit" type="text" value="kg" placeholder="kg / 100 pcs">
+</div>
+
+<div class="form-group full">
+<label>Weight / Quantity Options</label>
+<input
+  id="options"
+  type="text"
+  placeholder="250g, 500g, 1kg"
+>
+</div>
+
+<div class="form-group full">
+<label>Image Path</label>
+<input
+  id="image"
+  type="text"
+  placeholder="images/surmai.jpg"
+>
+</div>
+
+<div class="form-group full">
+<label>Description</label>
+<textarea
+  id="description"
+  placeholder="Product description..."
+></textarea>
+</div>
+
+<div class="form-group">
+<label>Display Order</label>
+<input id="sortOrder" type="number" min="1" value="1">
+</div>
+
+<div class="form-group">
+<label>Options</label>
+
+<div class="check-row">
+
+<label>
+<input id="cleaning" type="checkbox">
+Cleaning Available
+</label>
+
+<label>
+<input id="inStock" type="checkbox" checked>
+In Stock
+</label>
+
+</div>
+</div>
+
+</div>
+
+
+<div class="form-actions">
+
+<button id="saveProductBtn" class="btn green">
+  Save Product
+</button>
+
+<button id="cancelFormBtn" class="btn gray">
+  Cancel
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- PRODUCTS LIST -->
+
+<section class="section">
+
+<div class="section-title">
+
+<h3>Products & Today's Rates</h3>
+
+<div class="top-buttons">
+
+<button id="refreshBtn" class="btn primary">
+  Refresh
+</button>
+
+</div>
+
+</div>
+
+<div id="productsContainer" class="products">
+
+<div class="loading">
+  Loading products...
+</div>
+
+</div>
+
+</section>
 
 </main>
 
 
 <script type="module">
 
-  /* =======================================================
-     FIREBASE IMPORTS
-  ======================================================= */
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
-  import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
-  import {
-    getAuth,
-    onAuthStateChanged,
-    signOut
-  } from
-  "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    doc,
-    updateDoc,
-    setDoc,
-    query,
-    orderBy
-  } from
-  "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy
+} from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 
-  /* =======================================================
-     FIREBASE CONFIG
-  ======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
+  authDomain: "the-macchi-mart-7be07.firebaseapp.com",
+  projectId: "the-macchi-mart-7be07",
+  storageBucket: "the-macchi-mart-7be07.firebasestorage.app",
+  messagingSenderId: "981386840283",
+  appId: "1:981386840283:web:967a71c447387f612564fe",
+  measurementId: "G-ZLWDLY3QZ7"
+};
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
-    authDomain: "the-macchi-mart-7be07.firebaseapp.com",
-    projectId: "the-macchi-mart-7be07",
-    storageBucket: "the-macchi-mart-7be07.firebasestorage.app",
-    messagingSenderId: "981386840283",
-    appId: "1:981386840283:web:967a71c447387f612564fe",
-    measurementId: "G-ZLWDLY3QZ7"
+
+const ADMIN_UID =
+"uwduM2c4pSY1fRxAjzcZHUOiNZC3";
+
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
+const productsContainer =
+document.getElementById("productsContainer");
+
+const statusMessage =
+document.getElementById("statusMessage");
+
+const totalProducts =
+document.getElementById("totalProducts");
+
+const inStockCount =
+document.getElementById("inStockCount");
+
+const outStockCount =
+document.getElementById("outStockCount");
+
+const productForm =
+document.getElementById("productForm");
+
+const formTitle =
+document.getElementById("formTitle");
+
+let editingProductId = null;
+
+
+/* STATUS */
+
+function showStatus(message,type){
+
+  statusMessage.textContent=message;
+  statusMessage.className="status "+type;
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+
+  setTimeout(()=>{
+    statusMessage.className="status";
+  },4000);
+}
+
+
+/* SECURITY */
+
+onAuthStateChanged(auth,async user=>{
+
+  if(!user){
+    window.location.href="admin.html";
+    return;
+  }
+
+  if(user.uid!==ADMIN_UID){
+
+    await signOut(auth);
+
+    alert("Unauthorized administrator.");
+
+    window.location.href="admin.html";
+    return;
+  }
+
+  await loadProducts();
+
+});
+
+
+/* LOAD */
+
+async function loadProducts(){
+
+  productsContainer.innerHTML=
+  '<div class="loading">Loading products...</div>';
+
+  try{
+
+    let snapshot;
+
+    try{
+
+      const q=query(
+        collection(db,"products"),
+        orderBy("sortOrder")
+      );
+
+      snapshot=await getDocs(q);
+
+    }catch(error){
+
+      snapshot=await getDocs(
+        collection(db,"products")
+      );
+    }
+
+    const products=[];
+
+    snapshot.forEach(item=>{
+
+      products.push({
+        firestoreId:item.id,
+        ...item.data()
+      });
+
+    });
+
+    products.sort(
+      (a,b)=>
+      Number(a.sortOrder||999)-
+      Number(b.sortOrder||999)
+    );
+
+    renderProducts(products);
+    updateStats(products);
+
+  }catch(error){
+
+    console.error(error);
+
+    productsContainer.innerHTML=
+    '<div class="loading">Unable to load products.</div>';
+
+    showStatus(
+      "Unable to load products.",
+      "error"
+    );
+  }
+}
+
+
+/* RENDER */
+
+function renderProducts(products){
+
+  productsContainer.innerHTML="";
+
+  if(products.length===0){
+
+    productsContainer.innerHTML=
+    '<div class="loading">No products found.</div>';
+
+    return;
+  }
+
+  products.forEach(product=>{
+
+    const card=document.createElement("div");
+    card.className="product";
+
+    const id=product.firestoreId;
+    const image=product.image||"logo.png";
+
+    card.innerHTML=`
+
+      <img
+        src="${image}"
+        alt="${product.name||"Product"}"
+        onerror="this.onerror=null;this.src='logo.png';"
+      >
+
+      <div>
+
+        <div class="product-name">
+          ${product.name||"Unnamed Product"}
+        </div>
+
+        ${
+          product.marathiName
+          ? `<div class="marathi-name">${product.marathiName}</div>`
+          : ""
+        }
+
+        <div class="category">
+          ${product.category||""}
+        </div>
+
+        <div class="product-unit">
+          ${product.unit ? "Unit: "+product.unit : ""}
+        </div>
+
+      </div>
+
+
+      <div class="price-box">
+
+        <label>Price / Rate</label>
+
+        <input
+          class="price-input"
+          id="price-${id}"
+          type="number"
+          min="0"
+          step="1"
+          value="${Number(product.price||0)}"
+        >
+
+      </div>
+
+
+      <div class="actions">
+
+        <button
+          class="save-btn"
+          data-save="${id}">
+          Save Rate
+        </button>
+
+        <button
+          class="${
+            product.inStock===true
+            ? "stock-on"
+            : "stock-off"
+          }"
+          data-stock="${id}"
+          data-value="${product.inStock===true}">
+          ${
+            product.inStock===true
+            ? "In Stock"
+            : "Out of Stock"
+          }
+        </button>
+
+        <button
+          class="edit-btn"
+          data-edit="${id}">
+          Edit
+        </button>
+
+        <button
+          class="delete-btn"
+          data-delete="${id}">
+          Delete
+        </button>
+
+      </div>
+    `;
+
+    productsContainer.appendChild(card);
+  });
+
+
+  document.querySelectorAll("[data-save]")
+  .forEach(button=>{
+
+    button.addEventListener("click",async()=>{
+
+      await saveRate(
+        button.dataset.save
+      );
+
+    });
+
+  });
+
+
+  document.querySelectorAll("[data-stock]")
+  .forEach(button=>{
+
+    button.addEventListener("click",async()=>{
+
+      const current=
+      button.dataset.value==="true";
+
+      await changeStock(
+        button.dataset.stock,
+        !current
+      );
+
+    });
+
+  });
+
+
+  document.querySelectorAll("[data-edit]")
+  .forEach(button=>{
+
+    button.addEventListener("click",async()=>{
+
+      await editProduct(
+        button.dataset.edit
+      );
+
+    });
+
+  });
+
+
+  document.querySelectorAll("[data-delete]")
+  .forEach(button=>{
+
+    button.addEventListener("click",async()=>{
+
+      await removeProduct(
+        button.dataset.delete
+      );
+
+    });
+
+  });
+
+}
+
+
+/* QUICK RATE */
+
+async function saveRate(id){
+
+  const input=
+  document.getElementById(`price-${id}`);
+
+  const price=Number(input.value);
+
+  if(Number.isNaN(price)||price<0){
+
+    showStatus(
+      "Please enter a valid rate.",
+      "error"
+    );
+
+    return;
+  }
+
+  try{
+
+    await updateDoc(
+      doc(db,"products",id),
+      {price}
+    );
+
+    showStatus(
+      "Rate updated successfully.",
+      "success"
+    );
+
+    await loadProducts();
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to update rate.",
+      "error"
+    );
+  }
+}
+
+
+/* STOCK */
+
+async function changeStock(id,newStatus){
+
+  try{
+
+    await updateDoc(
+      doc(db,"products",id),
+      {inStock:newStatus}
+    );
+
+    showStatus(
+      newStatus
+      ? "Product marked In Stock."
+      : "Product marked Out of Stock.",
+      "success"
+    );
+
+    await loadProducts();
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to update stock.",
+      "error"
+    );
+  }
+}
+
+
+/* OPEN ADD */
+
+document
+.getElementById("openAddBtn")
+.addEventListener("click",()=>{
+
+  resetForm();
+
+  formTitle.textContent=
+  "Add New Product";
+
+  productForm.classList.add("show");
+
+  productForm.scrollIntoView({
+    behavior:"smooth"
+  });
+
+});
+
+
+/* EDIT */
+
+async function editProduct(id){
+
+  try{
+
+    const snapshot=
+    await getDoc(
+      doc(db,"products",id)
+    );
+
+    if(!snapshot.exists()){
+
+      showStatus(
+        "Product not found.",
+        "error"
+      );
+
+      return;
+    }
+
+    const p=snapshot.data();
+
+    editingProductId=id;
+
+    document.getElementById("productName").value=
+    p.name||"";
+
+    document.getElementById("marathiName").value=
+    p.marathiName||"";
+
+    document.getElementById("category").value=
+    p.category||"Fresh Fish";
+
+    document.getElementById("productPrice").value=
+    Number(p.price||0);
+
+    document.getElementById("priceType").value=
+    p.priceType||"today";
+
+    document.getElementById("unit").value=
+    p.unit||"kg";
+
+    document.getElementById("options").value=
+    Array.isArray(p.options)
+    ? p.options.join(", ")
+    : "";
+
+    document.getElementById("image").value=
+    p.image||"";
+
+    document.getElementById("description").value=
+    p.description||"";
+
+    document.getElementById("sortOrder").value=
+    Number(p.sortOrder||1);
+
+    document.getElementById("cleaning").checked=
+    p.cleaning===true;
+
+    document.getElementById("inStock").checked=
+    p.inStock!==false;
+
+    formTitle.textContent=
+    "Edit Product - "+(p.name||"");
+
+    productForm.classList.add("show");
+
+    productForm.scrollIntoView({
+      behavior:"smooth"
+    });
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to open product.",
+      "error"
+    );
+  }
+}
+
+
+/* SAVE PRODUCT */
+
+document
+.getElementById("saveProductBtn")
+.addEventListener("click",saveProduct);
+
+
+async function saveProduct(){
+
+  const name=
+  document.getElementById("productName")
+  .value.trim();
+
+  const marathiName=
+  document.getElementById("marathiName")
+  .value.trim();
+
+  const category=
+  document.getElementById("category").value;
+
+  const price=
+  Number(
+    document.getElementById("productPrice").value
+  );
+
+  const priceType=
+  document.getElementById("priceType").value;
+
+  const unit=
+  document.getElementById("unit")
+  .value.trim()||"kg";
+
+  const optionText=
+  document.getElementById("options")
+  .value.trim();
+
+  const options=
+  optionText
+  ? optionText
+      .split(",")
+      .map(x=>x.trim())
+      .filter(Boolean)
+  : [];
+
+  const image=
+  document.getElementById("image")
+  .value.trim()||"logo.png";
+
+  const description=
+  document.getElementById("description")
+  .value.trim();
+
+  const sortOrder=
+  Number(
+    document.getElementById("sortOrder").value
+  )||999;
+
+  const cleaning=
+  document.getElementById("cleaning").checked;
+
+  const inStock=
+  document.getElementById("inStock").checked;
+
+
+  if(!name){
+
+    showStatus(
+      "Product name is required.",
+      "error"
+    );
+
+    return;
+  }
+
+  if(Number.isNaN(price)||price<0){
+
+    showStatus(
+      "Please enter a valid price.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const data={
+    name,
+    marathiName,
+    category,
+    price,
+    priceType,
+    unit,
+    options,
+    image,
+    description,
+    sortOrder,
+    cleaning,
+    inStock
   };
 
 
-  const ADMIN_UID =
-    "uwduM2c4pSY1fRxAjzcZHUOiNZC3";
+  try{
 
-
-  const app =
-    initializeApp(firebaseConfig);
-
-  const auth =
-    getAuth(app);
-
-  const db =
-    getFirestore(app);
-
-
-  /* =======================================================
-     DEFAULT PRODUCT CATALOGUE
-  ======================================================= */
-
-  const DEFAULT_PRODUCTS = [
-
-    {
-      documentId: "surmai",
-      id: 1,
-      name: "Surmai",
-      marathiName: "सुरमई",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/surmai.jpg",
-      description:
-        "Fresh Surmai selected for quality and freshness. Cleaning and cutting available.",
-      options: ["500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 1
-    },
-
-    {
-      documentId: "pomfret",
-      id: 2,
-      name: "Pomfret",
-      marathiName: "पापलेट",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/pomfret.jpg",
-      description:
-        "Fresh Pomfret carefully selected and hygienically packed.",
-      options: ["500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 2
-    },
-
-    {
-      documentId: "bangda",
-      id: 3,
-      name: "Bangda",
-      marathiName: "बांगडा",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/bangda.jpg",
-      description:
-        "Fresh Bangda with cleaning and cutting option available.",
-      options: ["500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 3
-    },
-
-    {
-      documentId: "rawas",
-      id: 4,
-      name: "Rawas",
-      marathiName: "रावस",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/rawas.jpg",
-      description:
-        "Fresh Rawas selected for quality and prepared for home delivery.",
-      options: ["500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 4
-    },
-
-    {
-      documentId: "bombil",
-      id: 5,
-      name: "Bombil",
-      marathiName: "बॉम्बील",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/bombil.jpg",
-      description:
-        "Fresh Bombil cleaned and hygienically packed for your order.",
-      options: ["500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 5
-    },
-
-    {
-      documentId: "prawns",
-      id: 6,
-      name: "Prawns",
-      marathiName: "कोळंबी",
-      category: "Fresh Fish",
-      price: 0,
-      priceType: "today",
-      unit: "kg",
-      image: "images/prawns.jpg",
-      description:
-        "Fresh prawns with cleaning option available.",
-      options: ["250g", "500g", "1kg"],
-      cleaning: true,
-      inStock: true,
-      sortOrder: 6
-    },
-
-    {
-      documentId: "javla",
-      id: 7,
-      name: "Javla",
-      marathiName: "जावळा",
-      category: "Dry Fish",
-      price: 320,
-      priceType: "fixed",
-      unit: "kg",
-      image: "images/javla.jpg",
-      description:
-        "Premium quality Javla, carefully selected and hygienically packed.",
-      options: ["250g", "500g", "1kg"],
-      cleaning: false,
-      inStock: true,
-      sortOrder: 7
-    },
-
-    {
-      documentId: "kardi",
-      id: 8,
-      name: "Kardi",
-      marathiName: "करडी",
-      category: "Dry Fish",
-      price: 650,
-      priceType: "fixed",
-      unit: "kg",
-      image: "logo.png",
-      description:
-        "Premium quality dry Kardi with hygienic packaging.",
-      options: ["250g", "500g", "1kg"],
-      cleaning: false,
-      inStock: true,
-      sortOrder: 8
-    },
-
-    {
-      documentId: "dry-bombil",
-      id: 9,
-      name: "Dry Bombil",
-      marathiName: "सुका बॉम्बील",
-      category: "Dry Fish",
-      price: 480,
-      priceType: "fixed",
-      unit: "100 pcs",
-      image: "images/dry-bombil.jpg",
-      description:
-        "Premium quality dried Bombil, selected and hygienically packed.",
-      options: ["100 pcs"],
-      cleaning: false,
-      inStock: true,
-      sortOrder: 9
-    },
-
-    {
-      documentId: "sode",
-      id: 10,
-      name: "Sode / Dry Prawns",
-      marathiName: "सोडे / सुकी कोळंबी",
-      category: "Dry Fish",
-      price: 1750,
-      priceType: "fixed",
-      unit: "kg",
-      image: "images/sode.jpg",
-      description:
-        "Premium dried prawns selected for quality and hygienically packed.",
-      options: ["250g", "500g", "1kg"],
-      cleaning: false,
-      inStock: true,
-      sortOrder: 10
-    }
-
-  ];
-
-
-  /* =======================================================
-     ELEMENTS
-  ======================================================= */
-
-  const productsContainer =
-    document.getElementById("productsContainer");
-
-  const totalProducts =
-    document.getElementById("totalProducts");
-
-  const inStockCount =
-    document.getElementById("inStockCount");
-
-  const outStockCount =
-    document.getElementById("outStockCount");
-
-  const statusMessage =
-    document.getElementById("statusMessage");
-
-  const importProductsBtn =
-    document.getElementById("importProductsBtn");
-
-
-  /* =======================================================
-     STATUS MESSAGE
-  ======================================================= */
-
-  function showStatus(message, type) {
-
-    statusMessage.textContent =
-      message;
-
-    statusMessage.className =
-      "status " + type;
-
-
-    setTimeout(() => {
-
-      statusMessage.className =
-        "status";
-
-    }, 4000);
-
-  }
-
-
-  /* =======================================================
-     AUTH SECURITY
-  ======================================================= */
-
-  onAuthStateChanged(
-    auth,
-    async (user) => {
-
-      if (!user) {
-
-        window.location.href =
-          "admin.html";
-
-        return;
-
-      }
-
-
-      if (
-        user.uid !== ADMIN_UID
-      ) {
-
-        await signOut(auth);
-
-        alert(
-          "Unauthorized administrator."
-        );
-
-        window.location.href =
-          "admin.html";
-
-        return;
-
-      }
-
-
-      await loadProducts();
-
-    }
-  );
-
-
-  /* =======================================================
-     LOAD PRODUCTS
-  ======================================================= */
-
-  async function loadProducts() {
-
-    productsContainer.innerHTML =
-      '<div class="loading">Loading products...</div>';
-
-
-    try {
-
-      let snapshot;
-
-
-      try {
-
-        const productsQuery =
-          query(
-            collection(
-              db,
-              "products"
-            ),
-            orderBy(
-              "sortOrder"
-            )
-          );
-
-
-        snapshot =
-          await getDocs(
-            productsQuery
-          );
-
-      } catch (error) {
-
-        snapshot =
-          await getDocs(
-            collection(
-              db,
-              "products"
-            )
-          );
-
-      }
-
-
-      if (snapshot.empty) {
-
-        productsContainer.innerHTML =
-          '<div class="loading">No products found. Use "Import Default Products".</div>';
-
-        updateStats([]);
-
-        return;
-
-      }
-
-
-      const products = [];
-
-
-      snapshot.forEach(
-        (documentSnapshot) => {
-
-          products.push({
-
-            firestoreId:
-              documentSnapshot.id,
-
-            ...documentSnapshot.data()
-
-          });
-
-        }
-      );
-
-
-      products.sort(
-        (a, b) =>
-
-          Number(
-            a.sortOrder || 999
-          ) -
-
-          Number(
-            b.sortOrder || 999
-          )
-      );
-
-
-      renderProducts(
-        products
-      );
-
-
-      updateStats(
-        products
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-
-      productsContainer.innerHTML =
-        '<div class="loading">Unable to load products.</div>';
-
-
-      showStatus(
-        "Could not load products from Firestore.",
-        "error"
-      );
-
-    }
-
-  }
-
-
-  /* =======================================================
-     RENDER PRODUCTS
-  ======================================================= */
-
-  function renderProducts(products) {
-
-    productsContainer.innerHTML =
-      "";
-
-
-    products.forEach(
-      (product) => {
-
-        const card =
-          document.createElement(
-            "div"
-          );
-
-
-        card.className =
-          "product";
-
-
-        const image =
-          product.image ||
-          "logo.png";
-
-
-        const firestoreId =
-          product.firestoreId;
-
-
-        card.innerHTML = `
-
-          <img
-            src="${image}"
-            alt="${product.name || "Product"}"
-            onerror="
-              this.onerror=null;
-              this.src='logo.png';
-            "
-          >
-
-
-          <div>
-
-            <div class="product-name">
-              ${product.name || "Unnamed Product"}
-            </div>
-
-            ${
-              product.marathiName
-
-                ? `
-                  <div class="marathi-name">
-                    ${product.marathiName}
-                  </div>
-                `
-
-                : ""
-            }
-
-            <div class="category">
-              ${product.category || ""}
-            </div>
-
-          </div>
-
-
-          <div class="price-box">
-
-            <label>
-              Price / Rate
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="1"
-              class="price-input"
-              id="price-${firestoreId}"
-              value="${Number(product.price || 0)}"
-            >
-
-          </div>
-
-
-          <div class="actions">
-
-            <button
-              class="save-btn"
-              data-id="${firestoreId}"
-            >
-              Save Rate
-            </button>
-
-
-            <button
-              class="stock-btn ${
-                product.inStock === true
-                  ? "stock-on"
-                  : "stock-off"
-              }"
-              data-stock-id="${firestoreId}"
-              data-stock="${
-                product.inStock === true
-                  ? "true"
-                  : "false"
-              }"
-            >
-
-              ${
-                product.inStock === true
-                  ? "In Stock"
-                  : "Out of Stock"
-              }
-
-            </button>
-
-          </div>
-
-        `;
-
-
-        productsContainer.appendChild(
-          card
-        );
-
-      }
-    );
-
-
-    document
-      .querySelectorAll(
-        ".save-btn"
-      )
-      .forEach(
-        (button) => {
-
-          button.addEventListener(
-            "click",
-            async () => {
-
-              const id =
-                button.dataset.id;
-
-              await savePrice(
-                id
-              );
-
-            }
-          );
-
-        }
-      );
-
-
-    document
-      .querySelectorAll(
-        ".stock-btn"
-      )
-      .forEach(
-        (button) => {
-
-          button.addEventListener(
-            "click",
-            async () => {
-
-              const id =
-                button.dataset.stockId;
-
-              const currentStock =
-                button.dataset.stock ===
-                "true";
-
-
-              await changeStock(
-                id,
-                !currentStock
-              );
-
-            }
-          );
-
-        }
-      );
-
-  }
-
-
-  /* =======================================================
-     SAVE PRICE
-  ======================================================= */
-
-  async function savePrice(
-    productId
-  ) {
-
-    const input =
-      document.getElementById(
-        `price-${productId}`
-      );
-
-
-    const newPrice =
-      Number(
-        input.value
-      );
-
-
-    if (
-      Number.isNaN(
-        newPrice
-      ) ||
-      newPrice < 0
-    ) {
-
-      showStatus(
-        "Please enter a valid price.",
-        "error"
-      );
-
-      return;
-
-    }
-
-
-    try {
+    if(editingProductId){
 
       await updateDoc(
         doc(
           db,
           "products",
-          productId
+          editingProductId
         ),
-        {
-          price: newPrice
-        }
+        data
       );
 
-
       showStatus(
-        "Rate updated successfully.",
+        "Product updated successfully.",
         "success"
       );
 
-
-      await loadProducts();
-
-    } catch (error) {
-
-      console.error(error);
-
-
-      showStatus(
-        "Unable to update rate.",
-        "error"
-      );
-
-    }
-
-  }
-
-
-  /* =======================================================
-     CHANGE STOCK
-  ======================================================= */
-
-  async function changeStock(
-    productId,
-    newStatus
-  ) {
-
-    try {
-
-      await updateDoc(
-        doc(
-          db,
-          "products",
-          productId
-        ),
-        {
-          inStock:
-            newStatus
-        }
-      );
-
-
-      showStatus(
-        newStatus
-          ? "Product marked In Stock."
-          : "Product marked Out of Stock.",
-        "success"
-      );
-
-
-      await loadProducts();
-
-    } catch (error) {
-
-      console.error(error);
-
-
-      showStatus(
-        "Unable to update stock.",
-        "error"
-      );
-
-    }
-
-  }
-
-
-  /* =======================================================
-     IMPORT DEFAULT PRODUCTS
-  ======================================================= */
-
-  async function importDefaultProducts() {
-
-    const confirmed =
-      confirm(
-        "Import missing default products into Firestore?\n\nExisting products and their current rates will NOT be overwritten."
-      );
-
-
-    if (!confirmed) {
-      return;
-    }
-
-
-    importProductsBtn.disabled =
-      true;
-
-    importProductsBtn.textContent =
-      "Importing...";
-
-
-    try {
+    }else{
 
       /*
-        Read existing products first.
+        Create safe Firestore document ID
+        from product name.
       */
 
-      const existingSnapshot =
-        await getDocs(
-          collection(
-            db,
-            "products"
-          )
-        );
+      let documentId=
+      name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g,"-")
+      .replace(/^-+|-+$/g,"");
 
 
-      const existingDocumentIds =
-        new Set();
+      if(!documentId){
 
-
-      const existingNames =
-        new Set();
-
-
-      existingSnapshot.forEach(
-        (documentSnapshot) => {
-
-          existingDocumentIds.add(
-            documentSnapshot.id
-              .toLowerCase()
-          );
-
-
-          const data =
-            documentSnapshot.data();
-
-
-          if (data.name) {
-
-            existingNames.add(
-              String(data.name)
-                .trim()
-                .toLowerCase()
-            );
-
-          }
-
-        }
-      );
-
-
-      let importedCount = 0;
-
-      let skippedCount = 0;
-
-
-      for (
-        const product
-        of DEFAULT_PRODUCTS
-      ) {
-
-        const documentId =
-          product.documentId;
-
-
-        const normalizedName =
-          product.name
-            .trim()
-            .toLowerCase();
-
-
-        /*
-          Do not overwrite Surmai or any
-          other existing product.
-        */
-
-        if (
-          existingDocumentIds.has(
-            documentId.toLowerCase()
-          ) ||
-          existingNames.has(
-            normalizedName
-          )
-        ) {
-
-          skippedCount += 1;
-
-          continue;
-
-        }
-
-
-        const {
-          documentId:
-            ignoredDocumentId,
-          ...productData
-        } = product;
-
-
-        await setDoc(
-          doc(
-            db,
-            "products",
-            documentId
-          ),
-          productData
-        );
-
-
-        importedCount += 1;
+        documentId=
+        "product-"+Date.now();
 
       }
 
 
+      /*
+        Prevent accidental overwrite.
+      */
+
+      const existing=
+      await getDoc(
+        doc(db,"products",documentId)
+      );
+
+
+      if(existing.exists()){
+
+        showStatus(
+          "A product with this name already exists.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      await setDoc(
+        doc(
+          db,
+          "products",
+          documentId
+        ),
+        data
+      );
+
+
       showStatus(
-        `${importedCount} products imported. ${skippedCount} existing product(s) kept unchanged.`,
+        "New product added successfully.",
         "success"
       );
+    }
 
 
-      await loadProducts();
+    resetForm();
 
-    } catch (error) {
+    productForm.classList.remove("show");
 
-      console.error(
-        error
-      );
+    await loadProducts();
 
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to save product.",
+      "error"
+    );
+  }
+}
+
+
+/* DELETE */
+
+async function removeProduct(id){
+
+  try{
+
+    const snapshot=
+    await getDoc(
+      doc(db,"products",id)
+    );
+
+    if(!snapshot.exists()){
 
       showStatus(
-        "Unable to import products.",
+        "Product not found.",
         "error"
       );
 
-    } finally {
-
-      importProductsBtn.disabled =
-        false;
-
-      importProductsBtn.textContent =
-        "+ Import Default Products";
-
+      return;
     }
 
-  }
+    const product=snapshot.data();
 
 
-  /* =======================================================
-     STATS
-  ======================================================= */
-
-  function updateStats(
-    products
-  ) {
-
-    totalProducts.textContent =
-      products.length;
-
-
-    const available =
-      products.filter(
-        (product) =>
-          product.inStock === true
-      ).length;
-
-
-    inStockCount.textContent =
-      available;
-
-
-    outStockCount.textContent =
-      products.length -
-      available;
-
-  }
-
-
-  /* =======================================================
-     BUTTON EVENTS
-  ======================================================= */
-
-  importProductsBtn.addEventListener(
-    "click",
-    importDefaultProducts
-  );
-
-
-  document
-    .getElementById(
-      "refreshBtn"
-    )
-    .addEventListener(
-      "click",
-      loadProducts
+    const confirmed=
+    confirm(
+      `Delete "${product.name||"this product"}"?\n\nThis will remove it from Firestore.`
     );
 
 
-  document
-    .getElementById(
-      "logoutBtn"
-    )
-    .addEventListener(
-      "click",
-      async () => {
-
-        await signOut(
-          auth
-        );
+    if(!confirmed){
+      return;
+    }
 
 
-        window.location.href =
-          "admin.html";
-
-      }
+    await deleteDoc(
+      doc(db,"products",id)
     );
+
+
+    showStatus(
+      "Product deleted successfully.",
+      "success"
+    );
+
+
+    await loadProducts();
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to delete product.",
+      "error"
+    );
+  }
+}
+
+
+/* RESET */
+
+function resetForm(){
+
+  editingProductId=null;
+
+  document.getElementById("productName").value="";
+  document.getElementById("marathiName").value="";
+  document.getElementById("category").value="Fresh Fish";
+  document.getElementById("productPrice").value="0";
+  document.getElementById("priceType").value="today";
+  document.getElementById("unit").value="kg";
+  document.getElementById("options").value="";
+  document.getElementById("image").value="";
+  document.getElementById("description").value="";
+  document.getElementById("sortOrder").value="1";
+  document.getElementById("cleaning").checked=false;
+  document.getElementById("inStock").checked=true;
+
+}
+
+
+/* CANCEL */
+
+document
+.getElementById("cancelFormBtn")
+.addEventListener("click",()=>{
+
+  resetForm();
+
+  productForm.classList.remove("show");
+
+});
+
+
+/* STATS */
+
+function updateStats(products){
+
+  totalProducts.textContent=
+  products.length;
+
+  const available=
+  products.filter(
+    p=>p.inStock===true
+  ).length;
+
+  inStockCount.textContent=
+  available;
+
+  outStockCount.textContent=
+  products.length-available;
+
+}
+
+
+/* REFRESH */
+
+document
+.getElementById("refreshBtn")
+.addEventListener("click",loadProducts);
+
+
+/* LOGOUT */
+
+document
+.getElementById("logoutBtn")
+.addEventListener("click",async()=>{
+
+  await signOut(auth);
+
+  window.location.href=
+  "admin.html";
+
+});
 
 </script>
 
