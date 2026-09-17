@@ -145,20 +145,42 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
       margin-bottom: 18px;
+      flex-wrap: wrap;
     }
 
     .section-title h3 {
       font-size: 20px;
     }
 
-    .refresh-btn {
+    .section-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .refresh-btn,
+    .import-btn {
       border: none;
-      background: #0d88ad;
       color: white;
       padding: 9px 14px;
       border-radius: 8px;
       cursor: pointer;
+      font-weight: bold;
+    }
+
+    .refresh-btn {
+      background: #0d88ad;
+    }
+
+    .import-btn {
+      background: #176b3a;
+    }
+
+    .import-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .products {
@@ -187,6 +209,12 @@
     .product-name {
       font-weight: bold;
       font-size: 17px;
+    }
+
+    .marathi-name {
+      color: #0d88ad;
+      font-size: 13px;
+      margin-top: 3px;
     }
 
     .category {
@@ -277,12 +305,16 @@
         flex: 1;
       }
 
-      .header {
-        align-items: center;
-      }
-
       .brand h1 {
         font-size: 16px;
+      }
+
+      .section-actions {
+        width: 100%;
+      }
+
+      .section-actions button {
+        flex: 1;
       }
     }
   </style>
@@ -341,12 +373,31 @@
   <section class="section">
 
     <div class="section-title">
+
       <h3>Products & Today's Rates</h3>
 
-      <button id="refreshBtn" class="refresh-btn">
-        Refresh
-      </button>
+      <div class="section-actions">
+
+        <button
+          id="importProductsBtn"
+          class="import-btn"
+          type="button"
+        >
+          + Import Default Products
+        </button>
+
+        <button
+          id="refreshBtn"
+          class="refresh-btn"
+          type="button"
+        >
+          Refresh
+        </button>
+
+      </div>
+
     </div>
+
 
     <div id="productsContainer" class="products">
 
@@ -362,6 +413,10 @@
 
 
 <script type="module">
+
+  /* =======================================================
+     FIREBASE IMPORTS
+  ======================================================= */
 
   import { initializeApp } from
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
@@ -379,11 +434,16 @@
     getDocs,
     doc,
     updateDoc,
+    setDoc,
     query,
     orderBy
   } from
   "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
+
+  /* =======================================================
+     FIREBASE CONFIG
+  ======================================================= */
 
   const firebaseConfig = {
     apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
@@ -400,12 +460,208 @@
     "uwduM2c4pSY1fRxAjzcZHUOiNZC3";
 
 
-  const app = initializeApp(firebaseConfig);
+  const app =
+    initializeApp(firebaseConfig);
 
-  const auth = getAuth(app);
+  const auth =
+    getAuth(app);
 
-  const db = getFirestore(app);
+  const db =
+    getFirestore(app);
 
+
+  /* =======================================================
+     DEFAULT PRODUCT CATALOGUE
+  ======================================================= */
+
+  const DEFAULT_PRODUCTS = [
+
+    {
+      documentId: "surmai",
+      id: 1,
+      name: "Surmai",
+      marathiName: "सुरमई",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/surmai.jpg",
+      description:
+        "Fresh Surmai selected for quality and freshness. Cleaning and cutting available.",
+      options: ["500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 1
+    },
+
+    {
+      documentId: "pomfret",
+      id: 2,
+      name: "Pomfret",
+      marathiName: "पापलेट",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/pomfret.jpg",
+      description:
+        "Fresh Pomfret carefully selected and hygienically packed.",
+      options: ["500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 2
+    },
+
+    {
+      documentId: "bangda",
+      id: 3,
+      name: "Bangda",
+      marathiName: "बांगडा",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/bangda.jpg",
+      description:
+        "Fresh Bangda with cleaning and cutting option available.",
+      options: ["500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 3
+    },
+
+    {
+      documentId: "rawas",
+      id: 4,
+      name: "Rawas",
+      marathiName: "रावस",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/rawas.jpg",
+      description:
+        "Fresh Rawas selected for quality and prepared for home delivery.",
+      options: ["500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 4
+    },
+
+    {
+      documentId: "bombil",
+      id: 5,
+      name: "Bombil",
+      marathiName: "बॉम्बील",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/bombil.jpg",
+      description:
+        "Fresh Bombil cleaned and hygienically packed for your order.",
+      options: ["500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 5
+    },
+
+    {
+      documentId: "prawns",
+      id: 6,
+      name: "Prawns",
+      marathiName: "कोळंबी",
+      category: "Fresh Fish",
+      price: 0,
+      priceType: "today",
+      unit: "kg",
+      image: "images/prawns.jpg",
+      description:
+        "Fresh prawns with cleaning option available.",
+      options: ["250g", "500g", "1kg"],
+      cleaning: true,
+      inStock: true,
+      sortOrder: 6
+    },
+
+    {
+      documentId: "javla",
+      id: 7,
+      name: "Javla",
+      marathiName: "जावळा",
+      category: "Dry Fish",
+      price: 320,
+      priceType: "fixed",
+      unit: "kg",
+      image: "images/javla.jpg",
+      description:
+        "Premium quality Javla, carefully selected and hygienically packed.",
+      options: ["250g", "500g", "1kg"],
+      cleaning: false,
+      inStock: true,
+      sortOrder: 7
+    },
+
+    {
+      documentId: "kardi",
+      id: 8,
+      name: "Kardi",
+      marathiName: "करडी",
+      category: "Dry Fish",
+      price: 650,
+      priceType: "fixed",
+      unit: "kg",
+      image: "logo.png",
+      description:
+        "Premium quality dry Kardi with hygienic packaging.",
+      options: ["250g", "500g", "1kg"],
+      cleaning: false,
+      inStock: true,
+      sortOrder: 8
+    },
+
+    {
+      documentId: "dry-bombil",
+      id: 9,
+      name: "Dry Bombil",
+      marathiName: "सुका बॉम्बील",
+      category: "Dry Fish",
+      price: 480,
+      priceType: "fixed",
+      unit: "100 pcs",
+      image: "images/dry-bombil.jpg",
+      description:
+        "Premium quality dried Bombil, selected and hygienically packed.",
+      options: ["100 pcs"],
+      cleaning: false,
+      inStock: true,
+      sortOrder: 9
+    },
+
+    {
+      documentId: "sode",
+      id: 10,
+      name: "Sode / Dry Prawns",
+      marathiName: "सोडे / सुकी कोळंबी",
+      category: "Dry Fish",
+      price: 1750,
+      priceType: "fixed",
+      unit: "kg",
+      image: "images/sode.jpg",
+      description:
+        "Premium dried prawns selected for quality and hygienically packed.",
+      options: ["250g", "500g", "1kg"],
+      cleaning: false,
+      inStock: true,
+      sortOrder: 10
+    }
+
+  ];
+
+
+  /* =======================================================
+     ELEMENTS
+  ======================================================= */
 
   const productsContainer =
     document.getElementById("productsContainer");
@@ -422,74 +678,118 @@
   const statusMessage =
     document.getElementById("statusMessage");
 
+  const importProductsBtn =
+    document.getElementById("importProductsBtn");
+
+
+  /* =======================================================
+     STATUS MESSAGE
+  ======================================================= */
 
   function showStatus(message, type) {
 
-    statusMessage.textContent = message;
+    statusMessage.textContent =
+      message;
 
     statusMessage.className =
       "status " + type;
 
+
     setTimeout(() => {
 
-      statusMessage.className = "status";
+      statusMessage.className =
+        "status";
 
-    }, 3500);
+    }, 4000);
 
   }
 
 
-  onAuthStateChanged(auth, async (user) => {
+  /* =======================================================
+     AUTH SECURITY
+  ======================================================= */
 
-    if (!user) {
+  onAuthStateChanged(
+    auth,
+    async (user) => {
 
-      window.location.href = "admin.html";
-      return;
+      if (!user) {
+
+        window.location.href =
+          "admin.html";
+
+        return;
+
+      }
+
+
+      if (
+        user.uid !== ADMIN_UID
+      ) {
+
+        await signOut(auth);
+
+        alert(
+          "Unauthorized administrator."
+        );
+
+        window.location.href =
+          "admin.html";
+
+        return;
+
+      }
+
+
+      await loadProducts();
 
     }
+  );
 
 
-    if (user.uid !== ADMIN_UID) {
-
-      await signOut(auth);
-
-      alert("Unauthorized administrator.");
-
-      window.location.href = "admin.html";
-
-      return;
-
-    }
-
-
-    loadProducts();
-
-  });
-
+  /* =======================================================
+     LOAD PRODUCTS
+  ======================================================= */
 
   async function loadProducts() {
 
     productsContainer.innerHTML =
       '<div class="loading">Loading products...</div>';
 
+
     try {
 
       let snapshot;
 
+
       try {
 
-        const productsQuery = query(
-          collection(db, "products"),
-          orderBy("sortOrder")
-        );
+        const productsQuery =
+          query(
+            collection(
+              db,
+              "products"
+            ),
+            orderBy(
+              "sortOrder"
+            )
+          );
+
 
         snapshot =
-          await getDocs(productsQuery);
+          await getDocs(
+            productsQuery
+          );
 
       } catch (error) {
 
         snapshot =
-          await getDocs(collection(db, "products"));
+          await getDocs(
+            collection(
+              db,
+              "products"
+            )
+          );
 
       }
 
@@ -497,7 +797,7 @@
       if (snapshot.empty) {
 
         productsContainer.innerHTML =
-          '<div class="loading">No products found.</div>';
+          '<div class="loading">No products found. Use "Import Default Products".</div>';
 
         updateStats([]);
 
@@ -508,33 +808,53 @@
 
       const products = [];
 
-      snapshot.forEach((documentSnapshot) => {
 
-        products.push({
-          id: documentSnapshot.id,
-          ...documentSnapshot.data()
-        });
+      snapshot.forEach(
+        (documentSnapshot) => {
 
-      });
+          products.push({
+
+            firestoreId:
+              documentSnapshot.id,
+
+            ...documentSnapshot.data()
+
+          });
+
+        }
+      );
 
 
       products.sort(
         (a, b) =>
-          (a.sortOrder || 999) -
-          (b.sortOrder || 999)
+
+          Number(
+            a.sortOrder || 999
+          ) -
+
+          Number(
+            b.sortOrder || 999
+          )
       );
 
 
-      renderProducts(products);
+      renderProducts(
+        products
+      );
 
-      updateStats(products);
+
+      updateStats(
+        products
+      );
 
     } catch (error) {
 
       console.error(error);
 
+
       productsContainer.innerHTML =
         '<div class="loading">Unable to load products.</div>';
+
 
       showStatus(
         "Could not load products from Firestore.",
@@ -546,152 +866,203 @@
   }
 
 
+  /* =======================================================
+     RENDER PRODUCTS
+  ======================================================= */
+
   function renderProducts(products) {
 
-    productsContainer.innerHTML = "";
+    productsContainer.innerHTML =
+      "";
 
 
-    products.forEach((product) => {
+    products.forEach(
+      (product) => {
 
-      const card =
-        document.createElement("div");
-
-      card.className = "product";
-
-
-      const image =
-        product.image || "logo.png";
+        const card =
+          document.createElement(
+            "div"
+          );
 
 
-      card.innerHTML = `
-
-        <img
-          src="${image}"
-          alt="${product.name || "Product"}"
-          onerror="this.onerror=null;this.src='logo.png';"
-        >
+        card.className =
+          "product";
 
 
-        <div>
-
-          <div class="product-name">
-            ${product.name || "Unnamed Product"}
-          </div>
-
-          <div class="category">
-            ${product.category || ""}
-          </div>
-
-        </div>
+        const image =
+          product.image ||
+          "logo.png";
 
 
-        <div class="price-box">
+        const firestoreId =
+          product.firestoreId;
 
-          <label>
-            Price / Rate
-          </label>
 
-          <input
-            type="number"
-            min="0"
-            step="1"
-            class="price-input"
-            id="price-${product.id}"
-            value="${Number(product.price || 0)}"
+        card.innerHTML = `
+
+          <img
+            src="${image}"
+            alt="${product.name || "Product"}"
+            onerror="
+              this.onerror=null;
+              this.src='logo.png';
+            "
           >
 
-        </div>
 
+          <div>
 
-        <div class="actions">
-
-          <button
-            class="save-btn"
-            data-id="${product.id}"
-          >
-            Save Rate
-          </button>
-
-
-          <button
-            class="stock-btn ${
-              product.inStock
-                ? "stock-on"
-                : "stock-off"
-            }"
-            data-stock-id="${product.id}"
-            data-stock="${
-              product.inStock
-                ? "true"
-                : "false"
-            }"
-          >
+            <div class="product-name">
+              ${product.name || "Unnamed Product"}
+            </div>
 
             ${
-              product.inStock
-                ? "In Stock"
-                : "Out of Stock"
+              product.marathiName
+
+                ? `
+                  <div class="marathi-name">
+                    ${product.marathiName}
+                  </div>
+                `
+
+                : ""
             }
 
-          </button>
+            <div class="category">
+              ${product.category || ""}
+            </div>
 
-        </div>
-
-      `;
+          </div>
 
 
-      productsContainer.appendChild(card);
+          <div class="price-box">
 
-    });
+            <label>
+              Price / Rate
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              step="1"
+              class="price-input"
+              id="price-${firestoreId}"
+              value="${Number(product.price || 0)}"
+            >
+
+          </div>
+
+
+          <div class="actions">
+
+            <button
+              class="save-btn"
+              data-id="${firestoreId}"
+            >
+              Save Rate
+            </button>
+
+
+            <button
+              class="stock-btn ${
+                product.inStock === true
+                  ? "stock-on"
+                  : "stock-off"
+              }"
+              data-stock-id="${firestoreId}"
+              data-stock="${
+                product.inStock === true
+                  ? "true"
+                  : "false"
+              }"
+            >
+
+              ${
+                product.inStock === true
+                  ? "In Stock"
+                  : "Out of Stock"
+              }
+
+            </button>
+
+          </div>
+
+        `;
+
+
+        productsContainer.appendChild(
+          card
+        );
+
+      }
+    );
 
 
     document
-      .querySelectorAll(".save-btn")
-      .forEach((button) => {
+      .querySelectorAll(
+        ".save-btn"
+      )
+      .forEach(
+        (button) => {
 
-        button.addEventListener(
-          "click",
-          async () => {
+          button.addEventListener(
+            "click",
+            async () => {
 
-            const id =
-              button.dataset.id;
+              const id =
+                button.dataset.id;
 
-            await savePrice(id);
+              await savePrice(
+                id
+              );
 
-          }
-        );
+            }
+          );
 
-      });
+        }
+      );
 
 
     document
-      .querySelectorAll(".stock-btn")
-      .forEach((button) => {
+      .querySelectorAll(
+        ".stock-btn"
+      )
+      .forEach(
+        (button) => {
 
-        button.addEventListener(
-          "click",
-          async () => {
+          button.addEventListener(
+            "click",
+            async () => {
 
-            const id =
-              button.dataset.stockId;
+              const id =
+                button.dataset.stockId;
 
-            const currentStock =
-              button.dataset.stock === "true";
+              const currentStock =
+                button.dataset.stock ===
+                "true";
 
-            await changeStock(
-              id,
-              !currentStock
-            );
 
-          }
-        );
+              await changeStock(
+                id,
+                !currentStock
+              );
 
-      });
+            }
+          );
+
+        }
+      );
 
   }
 
 
-  async function savePrice(productId) {
+  /* =======================================================
+     SAVE PRICE
+  ======================================================= */
+
+  async function savePrice(
+    productId
+  ) {
 
     const input =
       document.getElementById(
@@ -700,11 +1071,15 @@
 
 
     const newPrice =
-      Number(input.value);
+      Number(
+        input.value
+      );
 
 
     if (
-      Number.isNaN(newPrice) ||
+      Number.isNaN(
+        newPrice
+      ) ||
       newPrice < 0
     ) {
 
@@ -721,7 +1096,11 @@
     try {
 
       await updateDoc(
-        doc(db, "products", productId),
+        doc(
+          db,
+          "products",
+          productId
+        ),
         {
           price: newPrice
         }
@@ -740,6 +1119,7 @@
 
       console.error(error);
 
+
       showStatus(
         "Unable to update rate.",
         "error"
@@ -750,6 +1130,10 @@
   }
 
 
+  /* =======================================================
+     CHANGE STOCK
+  ======================================================= */
+
   async function changeStock(
     productId,
     newStatus
@@ -758,9 +1142,14 @@
     try {
 
       await updateDoc(
-        doc(db, "products", productId),
+        doc(
+          db,
+          "products",
+          productId
+        ),
         {
-          inStock: newStatus
+          inStock:
+            newStatus
         }
       );
 
@@ -779,6 +1168,7 @@
 
       console.error(error);
 
+
       showStatus(
         "Unable to update stock.",
         "error"
@@ -789,7 +1179,183 @@
   }
 
 
-  function updateStats(products) {
+  /* =======================================================
+     IMPORT DEFAULT PRODUCTS
+  ======================================================= */
+
+  async function importDefaultProducts() {
+
+    const confirmed =
+      confirm(
+        "Import missing default products into Firestore?\n\nExisting products and their current rates will NOT be overwritten."
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    importProductsBtn.disabled =
+      true;
+
+    importProductsBtn.textContent =
+      "Importing...";
+
+
+    try {
+
+      /*
+        Read existing products first.
+      */
+
+      const existingSnapshot =
+        await getDocs(
+          collection(
+            db,
+            "products"
+          )
+        );
+
+
+      const existingDocumentIds =
+        new Set();
+
+
+      const existingNames =
+        new Set();
+
+
+      existingSnapshot.forEach(
+        (documentSnapshot) => {
+
+          existingDocumentIds.add(
+            documentSnapshot.id
+              .toLowerCase()
+          );
+
+
+          const data =
+            documentSnapshot.data();
+
+
+          if (data.name) {
+
+            existingNames.add(
+              String(data.name)
+                .trim()
+                .toLowerCase()
+            );
+
+          }
+
+        }
+      );
+
+
+      let importedCount = 0;
+
+      let skippedCount = 0;
+
+
+      for (
+        const product
+        of DEFAULT_PRODUCTS
+      ) {
+
+        const documentId =
+          product.documentId;
+
+
+        const normalizedName =
+          product.name
+            .trim()
+            .toLowerCase();
+
+
+        /*
+          Do not overwrite Surmai or any
+          other existing product.
+        */
+
+        if (
+          existingDocumentIds.has(
+            documentId.toLowerCase()
+          ) ||
+          existingNames.has(
+            normalizedName
+          )
+        ) {
+
+          skippedCount += 1;
+
+          continue;
+
+        }
+
+
+        const {
+          documentId:
+            ignoredDocumentId,
+          ...productData
+        } = product;
+
+
+        await setDoc(
+          doc(
+            db,
+            "products",
+            documentId
+          ),
+          productData
+        );
+
+
+        importedCount += 1;
+
+      }
+
+
+      showStatus(
+        `${importedCount} products imported. ${skippedCount} existing product(s) kept unchanged.`,
+        "success"
+      );
+
+
+      await loadProducts();
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+
+      showStatus(
+        "Unable to import products.",
+        "error"
+      );
+
+    } finally {
+
+      importProductsBtn.disabled =
+        false;
+
+      importProductsBtn.textContent =
+        "+ Import Default Products";
+
+    }
+
+  }
+
+
+  /* =======================================================
+     STATS
+  ======================================================= */
+
+  function updateStats(
+    products
+  ) {
 
     totalProducts.textContent =
       products.length;
@@ -797,7 +1363,7 @@
 
     const available =
       products.filter(
-        product =>
+        (product) =>
           product.inStock === true
       ).length;
 
@@ -807,13 +1373,26 @@
 
 
     outStockCount.textContent =
-      products.length - available;
+      products.length -
+      available;
 
   }
 
 
+  /* =======================================================
+     BUTTON EVENTS
+  ======================================================= */
+
+  importProductsBtn.addEventListener(
+    "click",
+    importDefaultProducts
+  );
+
+
   document
-    .getElementById("refreshBtn")
+    .getElementById(
+      "refreshBtn"
+    )
     .addEventListener(
       "click",
       loadProducts
@@ -821,12 +1400,17 @@
 
 
   document
-    .getElementById("logoutBtn")
+    .getElementById(
+      "logoutBtn"
+    )
     .addEventListener(
       "click",
       async () => {
 
-        await signOut(auth);
+        await signOut(
+          auth
+        );
+
 
         window.location.href =
           "admin.html";
