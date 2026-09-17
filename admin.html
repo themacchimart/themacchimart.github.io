@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Admin Login | The Macchi Mart</title>
+
+  <link rel="icon" type="image/png" href="logo.png">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        linear-gradient(
+          135deg,
+          #031b2e 0%,
+          #063b5c 55%,
+          #087aa5 100%
+        );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 35px 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    .logo-box {
+      width: 95px;
+      height: 95px;
+      margin: 0 auto 15px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
+      padding: 7px;
+    }
+
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    h1 {
+      text-align: center;
+      color: #062d49;
+      font-size: 27px;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #687785;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: #263746;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      height: 50px;
+      padding: 0 15px;
+      border: 1px solid #cbd5df;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      background: #ffffff;
+    }
+
+    input:focus {
+      border-color: #087aa5;
+      box-shadow: 0 0 0 3px rgba(8, 122, 165, 0.12);
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper input {
+      padding-right: 75px;
+    }
+
+    .show-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: #087aa5;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .login-btn {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: 11px;
+      background: #087aa5;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .login-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    #message {
+      display: none;
+      margin-top: 16px;
+      padding: 11px 12px;
+      border-radius: 9px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    #message.error {
+      display: block;
+      color: #a71919;
+      background: #ffe9e9;
+    }
+
+    #message.success {
+      display: block;
+      color: #12652b;
+      background: #e8f8ed;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 23px;
+    }
+
+    .back-link a {
+      color: #087aa5;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .security-text {
+      text-align: center;
+      color: #8a949d;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 28px 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="login-card">
+
+    <div class="logo-box">
+      <img src="logo.png" alt="The Macchi Mart Logo">
+    </div>
+
+    <h1>The Macchi Mart</h1>
+
+    <p class="subtitle">
+      Admin Control Panel
+    </p>
+
+    <form id="loginForm">
+
+      <div class="form-group">
+        <label for="email">Admin Email</label>
+
+        <input
+          type="email"
+          id="email"
+          placeholder="Enter admin email"
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+
+        <label for="password">Password</label>
+
+        <div class="password-wrapper">
+
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter password"
+            autocomplete="current-password"
+            required
+          >
+
+          <button
+            type="button"
+            class="show-password"
+            id="showPassword"
+          >
+            Show
+          </button>
+
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="login-btn"
+        id="loginButton"
+      >
+        Login to Admin
+      </button>
+
+      <div id="message"></div>
+
+    </form>
+
+    <div class="back-link">
+      <a href="index.html">← Back to The Macchi Mart</a>
+    </div>
+
+    <p class="security-text">
+      Authorized administrator access only
+    </p>
+
+  </main>
+
+
+  <!-- Firebase configuration -->
+  <script src="firebase-config.js"></script>
+
+
+  <!-- Firebase Admin Login -->
+  <script type="module">
+
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+
+    const ADMIN_UID = "uwduM2c4pSY1fRxAjzcZHUOiNZC3";
+
+
+    const app = initializeApp(firebaseConfig);
+
+    const auth = getAuth(app);
+
+
+    const loginForm =
+      document.getElementById("loginForm");
+
+    const emailInput =
+      document.getElementById("email");
+
+    const passwordInput =
+      document.getElementById("password");
+
+    const loginButton =
+      document.getElementById("loginButton");
+
+    const message =
+      document.getElementById("message");
+
+    const showPassword =
+      document.getElementById("showPassword");
+
+
+    function showMessage(text, type) {
+
+      message.textContent = text;
+      message.className = type;
+
+    }
+
+
+    showPassword.addEventListener(
+      "click",
+      function () {
+
+        if (passwordInput.type === "password") {
+
+          passwordInput.type = "text";
+          showPassword.textContent = "Hide";
+
+        } else {
+
+          passwordInput.type = "password";
+          showPassword.textContent = "Show";
+
+        }
+
+      }
+    );
+
+
+    loginForm.addEventListener(
+      "submit",
+      async function (event) {
+
+        event.preventDefault();
+
+        const email =
+          emailInput.value.trim();
+
+        const password =
+          passwordInput.value;
+
+
+        if (!email || !password) {
+
+          showMessage(
+            "Please enter email and password.",
+            "error"
+          );
+
+          return;
+        }
+
+
+        loginButton.disabled = true;
+        loginButton.textContent = "Signing in...";
+
+        message.className = "";
+        message.style.display = "none";
+
+
+        try {
+
+          const result =
+            await signInWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+
+
+          if (
+            result.user.uid !== ADMIN_UID
+          ) {
+
+            await auth.signOut();
+
+            throw new Error(
+              "Unauthorized administrator."
+            );
+
+          }
+
+
+          showMessage(
+            "Login successful. Opening dashboard...",
+            "success"
+          );
+
+
+          setTimeout(
+            function () {
+
+              window.location.href =
+                "admin-dashboard.html";
+
+            },
+            700
+          );
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          showMessage(
+            "Login failed. Check your admin email and password.",
+            "error"
+          );
+
+          loginButton.disabled = false;
+          loginButton.textContent =
+            "Login to Admin";
+
+        }
+
+      }
+    );
+
+
+    onAuthStateChanged(
+      auth,
+      function (user) {
+
+        if (
+          user &&
+          user.uid === ADMIN_UID
+        ) {
+
+          window.location.href =
+            "admin-dashboard.html";
+
+        }
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>
