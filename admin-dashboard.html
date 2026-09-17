@@ -367,6 +367,155 @@ body{
 .delivery-value{font-weight:bold;color:#0d88ad}
 .delivery-actions{display:flex;flex-direction:column;gap:7px}
 .delivery-actions button{border:0;padding:9px;border-radius:7px;cursor:pointer;font-weight:bold}
+/* WEBSITE MAINTENANCE MODE */
+
+function renderMaintenanceStatus(){
+
+  if(!maintenanceStatusBadge || !maintenanceToggleBtn){
+    return;
+  }
+
+  if(currentMaintenanceMode){
+
+    maintenanceStatusBadge.textContent="MAINTENANCE ON";
+    maintenanceStatusBadge.style.background="#fde2e2";
+    maintenanceStatusBadge.style.color="#a92c2c";
+
+    maintenanceToggleBtn.textContent="Go Live / Turn Maintenance OFF";
+    maintenanceToggleBtn.className="btn green";
+
+  }else{
+
+    maintenanceStatusBadge.textContent="WEBSITE LIVE";
+    maintenanceStatusBadge.style.background="#dcf5e6";
+    maintenanceStatusBadge.style.color="#14743b";
+
+    maintenanceToggleBtn.textContent="Turn Maintenance ON";
+    maintenanceToggleBtn.className="btn red";
+
+  }
+
+}
+
+
+async function loadMaintenanceSetting(){
+
+  try{
+
+    const snapshot=
+      await getDoc(
+        doc(db,"siteSettings","main")
+      );
+
+    if(snapshot.exists()){
+
+      const settings=snapshot.data();
+
+      currentMaintenanceMode=
+        settings.maintenanceMode===true;
+
+      if(maintenanceMessage){
+        maintenanceMessage.value=
+          settings.maintenanceMessage ||
+          "We are updating our shop. Please check back shortly.";
+      }
+
+    }else{
+
+      currentMaintenanceMode=false;
+
+    }
+
+    renderMaintenanceStatus();
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to load website maintenance setting.",
+      "error"
+    );
+
+  }
+
+}
+
+
+async function saveMaintenanceSettings(nextMode){
+
+  try{
+
+    const message=
+      maintenanceMessage
+        ? maintenanceMessage.value.trim()
+        : "";
+
+    await setDoc(
+      doc(db,"siteSettings","main"),
+      {
+        maintenanceMode:nextMode,
+        maintenanceMessage:
+          message ||
+          "We are updating our shop. Please check back shortly.",
+        updatedAt:Date.now()
+      },
+      {merge:true}
+    );
+
+    currentMaintenanceMode=nextMode;
+
+    renderMaintenanceStatus();
+
+    showStatus(
+      nextMode
+        ? "Customer website is now UNDER MAINTENANCE."
+        : "Customer website is now LIVE.",
+      "success"
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "Unable to update website maintenance mode.",
+      "error"
+    );
+
+  }
+
+}
+
+
+if(maintenanceToggleBtn){
+
+  maintenanceToggleBtn.addEventListener(
+    "click",
+    async()=>{
+      await saveMaintenanceSettings(
+        !currentMaintenanceMode
+      );
+    }
+  );
+
+}
+
+
+if(saveMaintenanceMessageBtn){
+
+  saveMaintenanceMessageBtn.addEventListener(
+    "click",
+    async()=>{
+      await saveMaintenanceSettings(
+        currentMaintenanceMode
+      );
+    }
+  );
+
+}
+
+
 /* DELIVERY SLOT AVAILABILITY */
 
 .slot-list{
@@ -479,6 +628,47 @@ body{
 </section>
 
 <div id="statusMessage" class="status"></div>
+
+
+<!-- SITE MAINTENANCE -->
+<section class="section" id="maintenanceSection">
+  <div class="section-title">
+    <div>
+      <h3>🛠 Website Maintenance Mode</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">
+        Put the customer website under maintenance without blocking this Admin Dashboard.
+      </p>
+    </div>
+    <span
+      id="maintenanceStatusBadge"
+      style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;background:#dcf5e6;color:#14743b;"
+    >
+      WEBSITE LIVE
+    </span>
+  </div>
+
+  <div class="form-group full">
+    <label>Maintenance Message</label>
+    <textarea
+      id="maintenanceMessage"
+      placeholder="Example: We are updating our shop. Please check back shortly."
+    >We are updating our shop. Please check back shortly.</textarea>
+  </div>
+
+  <div class="form-actions">
+    <button id="maintenanceToggleBtn" class="btn red">
+      Turn Maintenance ON
+    </button>
+    <button id="saveMaintenanceMessageBtn" class="btn primary">
+      Save Message
+    </button>
+  </div>
+
+  <p style="color:#667784;font-size:12px;margin-top:12px;line-height:1.5;">
+    When Maintenance is ON, customers will see a branded maintenance screen and shopping will be blocked.
+    Admin login and this dashboard will continue working.
+  </p>
+</section>
 
 
 <section class="stats">
@@ -829,6 +1019,13 @@ const deliveryFormTitle = document.getElementById("deliveryFormTitle");
 
 const slotContainer = document.getElementById("slotContainer");
 
+const maintenanceStatusBadge = document.getElementById("maintenanceStatusBadge");
+const maintenanceMessage = document.getElementById("maintenanceMessage");
+const maintenanceToggleBtn = document.getElementById("maintenanceToggleBtn");
+const saveMaintenanceMessageBtn = document.getElementById("saveMaintenanceMessageBtn");
+
+let currentMaintenanceMode = false;
+
 const DEFAULT_DELIVERY_SLOTS = [
   { id: "7-8", label: "7:00 AM - 8:00 AM", sortOrder: 1 },
   { id: "8-9", label: "8:00 AM - 9:00 AM", sortOrder: 2 },
@@ -875,6 +1072,7 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
 
+  await loadMaintenanceSetting();
   await loadProducts();
   await loadDeliveryAreas();
   await loadDeliverySlots();
