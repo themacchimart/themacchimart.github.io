@@ -1,6 +1,6 @@
 /* =========================================================
    THE MACCHI MART
-   Seafood Catalog + Cart + WhatsApp Checkout
+   Firebase Live Products + Cart + WhatsApp Checkout
 ========================================================= */
 
 
@@ -19,6 +19,21 @@ const DELIVERY_AREAS = [
 
 
 /* =========================================================
+   FIREBASE SETTINGS
+========================================================= */
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
+  authDomain: "the-macchi-mart-7be07.firebaseapp.com",
+  projectId: "the-macchi-mart-7be07",
+  storageBucket: "the-macchi-mart-7be07.firebasestorage.app",
+  messagingSenderId: "981386840283",
+  appId: "1:981386840283:web:967a71c447387f612564fe",
+  measurementId: "G-ZLWDLY3QZ7"
+};
+
+
+/* =========================================================
    STATE
 ========================================================= */
 
@@ -27,6 +42,15 @@ let cart = [];
 let selectedCategory = "all";
 
 let searchText = "";
+
+
+/*
+  products.js already creates:
+  const products = [...]
+
+  We keep that catalogue as the fallback.
+  Firebase will update matching products.
+*/
 
 
 /* =========================================================
@@ -89,11 +113,27 @@ function formatPrice(price) {
 }
 
 
-function isTodayRate(product) {
+/*
+  IMPORTANT:
+
+  price = 0
+  means rate is not available.
+
+  price > 0
+  means admin has entered today's actual rate.
+
+  Therefore priceType === "today" does NOT automatically
+  mean that the price is unknown.
+*/
+
+function isRateUnavailable(product) {
+
+  const price =
+    Number(product.price);
 
   return (
-    product.priceType === "today" ||
-    Number(product.price) <= 0
+    !Number.isFinite(price) ||
+    price <= 0
   );
 
 }
@@ -105,40 +145,32 @@ function getWeightMultiplier(weight) {
     return 1;
   }
 
-
   const value =
     weight.toLowerCase().trim();
-
 
   if (value.includes("250g")) {
     return 0.25;
   }
 
-
   if (value.includes("500g")) {
     return 0.5;
   }
-
 
   if (value.includes("750g")) {
     return 0.75;
   }
 
-
-  if (value.includes("1kg")) {
-    return 1;
-  }
-
-
   if (value.includes("1.5kg")) {
     return 1.5;
   }
-
 
   if (value.includes("2kg")) {
     return 2;
   }
 
+  if (value.includes("1kg")) {
+    return 1;
+  }
 
   return 1;
 
@@ -154,7 +186,7 @@ function calculateSelectedPrice(
   selectedOption
 ) {
 
-  if (isTodayRate(product)) {
+  if (isRateUnavailable(product)) {
 
     return null;
 
@@ -162,8 +194,7 @@ function calculateSelectedPrice(
 
 
   /*
-    Special fixed-unit products:
-    Example:
+    Special fixed-unit product:
     Dry Bombil ₹480 / 100 pcs
   */
 
@@ -192,6 +223,268 @@ function calculateSelectedPrice(
 
 
 /* =========================================================
+   FIREBASE LIVE PRODUCT DATA
+========================================================= */
+
+async function loadFirebaseProducts() {
+
+  try {
+
+    const {
+      initializeApp
+    } =
+      await import(
+        "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js"
+      );
+
+
+    const {
+      getFirestore,
+      collection,
+      getDocs
+    } =
+      await import(
+        "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+      );
+
+
+    const app =
+      initializeApp(
+        FIREBASE_CONFIG
+      );
+
+
+    const db =
+      getFirestore(app);
+
+
+    const snapshot =
+      await getDocs(
+        collection(
+          db,
+          "products"
+        )
+      );
+
+
+    snapshot.forEach(
+      (documentSnapshot) => {
+
+        const firebaseProduct =
+          documentSnapshot.data();
+
+
+        /*
+          Match Firebase product with static product.
+
+          First try numeric id.
+          Then try product name.
+          Then try Firebase document id.
+        */
+
+        let index = -1;
+
+
+        if (
+          firebaseProduct.id !==
+          undefined
+        ) {
+
+          index =
+            products.findIndex(
+              (product) =>
+                String(product.id) ===
+                String(firebaseProduct.id)
+            );
+
+        }
+
+
+        if (
+          index === -1 &&
+          firebaseProduct.name
+        ) {
+
+          index =
+            products.findIndex(
+              (product) =>
+                String(product.name)
+                  .trim()
+                  .toLowerCase() ===
+                String(firebaseProduct.name)
+                  .trim()
+                  .toLowerCase()
+            );
+
+        }
+
+
+        if (index === -1) {
+
+          index =
+            products.findIndex(
+              (product) =>
+                String(product.name)
+                  .trim()
+                  .toLowerCase() ===
+                String(documentSnapshot.id)
+                  .trim()
+                  .toLowerCase()
+            );
+
+        }
+
+
+        if (index !== -1) {
+
+          /*
+            Merge Firebase values over
+            the existing static product.
+          */
+
+          Object.assign(
+            products[index],
+            firebaseProduct
+          );
+
+
+          /*
+            Keep the static numeric ID.
+
+            This prevents cart onclick
+            problems if Firestore has no ID.
+          */
+
+          if (
+            !Number.isFinite(
+              Number(products[index].id)
+            )
+          ) {
+
+            products[index].id =
+              index + 1;
+
+          }
+
+        } else {
+
+          /*
+            Future support:
+            If admin creates a completely
+            new product in Firestore,
+            it can also appear on website.
+          */
+
+          const newProduct = {
+
+            ...firebaseProduct,
+
+            id:
+              Number(
+                firebaseProduct.id
+              ) ||
+              (
+                Math.max(
+                  0,
+                  ...products.map(
+                    (product) =>
+                      Number(product.id) || 0
+                  )
+                ) + 1
+              ),
+
+            image:
+              firebaseProduct.image ||
+              "logo.png",
+
+            options:
+              Array.isArray(
+                firebaseProduct.options
+              )
+                ? firebaseProduct.options
+                : [],
+
+            cleaning:
+              Boolean(
+                firebaseProduct.cleaning
+              ),
+
+            inStock:
+              firebaseProduct.inStock !==
+              false
+
+          };
+
+
+          products.push(
+            newProduct
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      Sort using sortOrder when available.
+    */
+
+    products.sort(
+      (a, b) => {
+
+        const aOrder =
+          Number(
+            a.sortOrder ??
+            a.id ??
+            999
+          );
+
+        const bOrder =
+          Number(
+            b.sortOrder ??
+            b.id ??
+            999
+          );
+
+        return (
+          aOrder -
+          bOrder
+        );
+
+      }
+    );
+
+
+    console.log(
+      "Firebase products loaded successfully."
+    );
+
+
+    displayProducts();
+
+  } catch (error) {
+
+    /*
+      IMPORTANT:
+      Website continues working with
+      products.js if Firebase fails.
+    */
+
+    console.error(
+      "Firebase product loading failed:",
+      error
+    );
+
+
+    displayProducts();
+
+  }
+
+}
+
+
+/* =========================================================
    DISPLAY PRODUCTS
 ========================================================= */
 
@@ -203,47 +496,47 @@ function displayProducts() {
 
 
   const filteredProducts =
-    products.filter((product) => {
+    products.filter(
+      (product) => {
 
-      const categoryMatch =
-        selectedCategory === "all" ||
-        product.category ===
-        selectedCategory;
-
-
-      const combinedText = `
-
-        ${product.name || ""}
-
-        ${product.marathiName || ""}
-
-        ${product.category || ""}
-
-        ${product.description || ""}
-
-      `.toLowerCase();
+        const categoryMatch =
+          selectedCategory === "all" ||
+          product.category ===
+          selectedCategory;
 
 
-      const searchMatch =
-        combinedText.includes(
-          searchText.toLowerCase()
+        const combinedText = `
+
+          ${product.name || ""}
+
+          ${product.marathiName || ""}
+
+          ${product.category || ""}
+
+          ${product.description || ""}
+
+        `.toLowerCase();
+
+
+        const searchMatch =
+          combinedText.includes(
+            searchText.toLowerCase()
+          );
+
+
+        return (
+          categoryMatch &&
+          searchMatch
         );
 
-
-      return (
-        categoryMatch &&
-        searchMatch
-      );
-
-    });
+      }
+    );
 
 
   productGrid.innerHTML = "";
 
 
-  if (
-    productResultText
-  ) {
+  if (productResultText) {
 
     productResultText.textContent =
       `${filteredProducts.length} products found`;
@@ -312,14 +605,14 @@ function createProductCard(product) {
     "product-card";
 
 
-  const todayRate =
-    isTodayRate(product);
+  const rateUnavailable =
+    isRateUnavailable(product);
 
 
   let priceHTML = "";
 
 
-  if (todayRate) {
+  if (rateUnavailable) {
 
     priceHTML = `
 
@@ -371,7 +664,19 @@ function createProductCard(product) {
           "
         >
 
-          per ${product.unit || "unit"}
+          ${
+            product.priceType === "today"
+              ? "Today's Rate"
+              : "per " +
+                (product.unit || "unit")
+          }
+
+          ${
+            product.priceType === "today" &&
+            product.unit
+              ? " / " + product.unit
+              : ""
+          }
 
         </div>
 
@@ -514,8 +819,8 @@ function createProductCard(product) {
 
     <img
       class="product-image"
-      src="${product.image}"
-      alt="${product.name}"
+      src="${product.image || "logo.png"}"
+      alt="${product.name || "Seafood"}"
       loading="lazy"
 
       onerror="
@@ -532,14 +837,14 @@ function createProductCard(product) {
 
       <span class="product-category">
 
-        ${product.category}
+        ${product.category || ""}
 
       </span>
 
 
       <h3 class="product-name">
 
-        ${product.name}
+        ${product.name || "Seafood"}
 
       </h3>
 
@@ -547,24 +852,24 @@ function createProductCard(product) {
       ${
         product.marathiName
 
-        ? `
+          ? `
 
-          <div
-            style="
-              color:#167a9f;
-              font-weight:700;
-              font-size:13px;
-              margin-bottom:6px;
-            "
-          >
+            <div
+              style="
+                color:#167a9f;
+                font-weight:700;
+                font-size:13px;
+                margin-bottom:6px;
+              "
+            >
 
-            ${product.marathiName}
+              ${product.marathiName}
 
-          </div>
+            </div>
 
-        `
+          `
 
-        : ""
+          : ""
       }
 
 
@@ -587,40 +892,40 @@ function createProductCard(product) {
 
 
         ${
-          product.inStock
+          product.inStock !== false
 
-          ? `
+            ? `
 
-            <button
-              class="add-cart"
-              type="button"
-              onclick="addConfiguredProductToCart(${product.id})"
-            >
+              <button
+                class="add-cart"
+                type="button"
+                onclick="addConfiguredProductToCart(${product.id})"
+              >
 
-              ${
-                todayRate
-                  ? "Add Enquiry"
-                  : "Add to Cart"
-              }
+                ${
+                  rateUnavailable
+                    ? "Add Enquiry"
+                    : "Add to Cart"
+                }
 
-            </button>
+              </button>
 
-          `
+            `
 
-          : `
+            : `
 
-            <button
-              class="add-cart"
-              type="button"
-              disabled
-              style="opacity:0.5;"
-            >
+              <button
+                class="add-cart"
+                type="button"
+                disabled
+                style="opacity:0.5;"
+              >
 
-              Out of Stock
+                Out of Stock
 
-            </button>
+              </button>
 
-          `
+            `
         }
 
       </div>
@@ -646,13 +951,14 @@ function addConfiguredProductToCart(
   const product =
     products.find(
       (item) =>
-        item.id === productId
+        Number(item.id) ===
+        Number(productId)
     );
 
 
   if (
     !product ||
-    !product.inStock
+    product.inStock === false
   ) {
 
     return;
@@ -691,11 +997,6 @@ function addConfiguredProductToCart(
     );
 
 
-  /*
-    Unique cart item based on:
-    product + weight + cleaning
-  */
-
   const cartKey = `
 
     ${product.id}-
@@ -708,7 +1009,8 @@ function addConfiguredProductToCart(
   const existingItem =
     cart.find(
       (item) =>
-        item.cartKey === cartKey
+        item.cartKey ===
+        cartKey
     );
 
 
@@ -742,7 +1044,7 @@ function addConfiguredProductToCart(
         calculatedPrice,
 
       todayRate:
-        isTodayRate(product),
+        calculatedPrice === null,
 
       quantity: 1
 
@@ -759,7 +1061,7 @@ function addConfiguredProductToCart(
 
 
 /* =========================================================
-   INCREASE CART QUANTITY
+   CART QUANTITY
 ========================================================= */
 
 function increaseQuantity(
@@ -781,15 +1083,10 @@ function increaseQuantity(
 
   item.quantity += 1;
 
-
   updateCart();
 
 }
 
-
-/* =========================================================
-   DECREASE CART QUANTITY
-========================================================= */
 
 function decreaseQuantity(
   cartKey
@@ -856,6 +1153,9 @@ function removeFromCart(
 
 function updateCart() {
 
+  restoreCartFooter();
+
+
   if (!cartItems) {
     return;
   }
@@ -880,11 +1180,9 @@ function updateCart() {
           🛒
         </div>
 
-
         <h3>
           Your cart is empty
         </h3>
-
 
         <p>
           Add fresh or dry seafood
@@ -936,28 +1234,21 @@ function updateCart() {
 
           <div>
 
-
             <h4>
-
               ${item.name}
-
             </h4>
 
 
             ${
               item.marathiName
 
-              ? `
+                ? `
+                  <p>
+                    ${item.marathiName}
+                  </p>
+                `
 
-                <p>
-
-                  ${item.marathiName}
-
-                </p>
-
-              `
-
-              : ""
+                : ""
             }
 
 
@@ -975,41 +1266,36 @@ function updateCart() {
               item.cleaning !==
               "Not Applicable"
 
-              ? `
+                ? `
 
-                <p>
+                  <p>
 
-                  Cleaning:
-                  <strong>
-                    ${item.cleaning}
-                  </strong>
+                    Cleaning:
+                    <strong>
+                      ${item.cleaning}
+                    </strong>
 
-                </p>
+                  </p>
 
-              `
+                `
 
-              : ""
+                : ""
             }
 
 
             <div class="cart-controls">
-
 
               <button
                 class="quantity-btn"
                 type="button"
                 onclick="decreaseQuantity('${item.cartKey}')"
               >
-
                 −
-
               </button>
 
 
               <strong>
-
                 ${item.quantity}
-
               </strong>
 
 
@@ -1018,9 +1304,7 @@ function updateCart() {
                 type="button"
                 onclick="increaseQuantity('${item.cartKey}')"
               >
-
                 +
-
               </button>
 
 
@@ -1029,9 +1313,7 @@ function updateCart() {
                 type="button"
                 onclick="removeFromCart('${item.cartKey}')"
               >
-
                 Remove
-
               </button>
 
             </div>
@@ -1040,9 +1322,7 @@ function updateCart() {
 
 
           <strong>
-
             ${priceText}
-
           </strong>
 
         `;
@@ -1071,19 +1351,14 @@ function updateCartSummary() {
 
   const totalQuantity =
     cart.reduce(
-
       (total, item) =>
-        total +
-        item.quantity,
-
+        total + item.quantity,
       0
-
     );
 
 
   const knownPriceTotal =
     cart.reduce(
-
       (total, item) => {
 
         if (
@@ -1103,9 +1378,7 @@ function updateCartSummary() {
         );
 
       },
-
       0
-
     );
 
 
@@ -1241,7 +1514,6 @@ function showCheckoutForm() {
       "
     >
 
-
       <button
         type="button"
         onclick="updateCart()"
@@ -1253,16 +1525,12 @@ function showCheckoutForm() {
           margin-bottom:20px;
         "
       >
-
         ← Back to Cart
-
       </button>
 
 
       <p class="section-small">
-
         DELIVERY DETAILS
-
       </p>
 
 
@@ -1273,9 +1541,7 @@ function showCheckoutForm() {
           font-size:22px;
         "
       >
-
         Complete Your Order
-
       </h3>
 
 
@@ -1287,9 +1553,7 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
-
         CUSTOMER NAME *
-
       </label>
 
 
@@ -1315,9 +1579,7 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
-
         MOBILE NUMBER *
-
       </label>
 
 
@@ -1345,9 +1607,7 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
-
         DELIVERY AREA *
-
       </label>
 
 
@@ -1370,13 +1630,9 @@ function showCheckoutForm() {
         ${DELIVERY_AREAS
           .map(
             (area) => `
-
               <option value="${area}">
-
                 ${area}
-
               </option>
-
             `
           )
           .join("")}
@@ -1392,9 +1648,7 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
-
         FULL DELIVERY ADDRESS *
-
       </label>
 
 
@@ -1422,9 +1676,7 @@ function showCheckoutForm() {
           margin-bottom:5px;
         "
       >
-
         ORDER NOTE
-
       </label>
 
 
@@ -1458,9 +1710,7 @@ function showCheckoutForm() {
           font-size:15px;
         "
       >
-
         💬 Send Order on WhatsApp
-
       </button>
 
 
@@ -1472,22 +1722,15 @@ function showCheckoutForm() {
           text-align:center;
         "
       >
-
         Fresh fish prices and final
         availability will be confirmed
         by The Macchi Mart.
-
       </p>
 
     </div>
 
   `;
 
-
-  /*
-    Hide old cart footer while
-    checkout form is open.
-  */
 
   const cartFooter =
     document.querySelector(
@@ -1527,24 +1770,6 @@ function restoreCartFooter() {
 }
 
 
-/*
-  Wrap updateCart so that pressing
-  "Back to Cart" restores footer.
-*/
-
-const originalUpdateCart =
-  updateCart;
-
-
-updateCart = function () {
-
-  restoreCartFooter();
-
-  originalUpdateCart();
-
-};
-
-
 /* =========================================================
    SEND WHATSAPP ORDER
 ========================================================= */
@@ -1556,24 +1781,20 @@ function sendWhatsAppOrder() {
       "customerName"
     );
 
-
   const mobileElement =
     document.getElementById(
       "customerMobile"
     );
-
 
   const areaElement =
     document.getElementById(
       "customerArea"
     );
 
-
   const addressElement =
     document.getElementById(
       "customerAddress"
     );
-
 
   const noteElement =
     document.getElementById(
@@ -1596,20 +1817,16 @@ function sendWhatsAppOrder() {
   const customerName =
     nameElement.value.trim();
 
-
   const customerMobile =
     mobileElement.value
       .replace(/\D/g, "")
       .trim();
 
-
   const customerArea =
     areaElement.value.trim();
 
-
   const customerAddress =
     addressElement.value.trim();
-
 
   const customerNote =
     noteElement
@@ -1693,18 +1910,14 @@ function sendWhatsAppOrder() {
   message +=
     "👤 *CUSTOMER DETAILS*\n\n";
 
-
   message +=
     `Name: ${customerName}\n`;
-
 
   message +=
     `Mobile: ${customerMobile}\n`;
 
-
   message +=
     `Area: ${customerArea}\n`;
-
 
   message +=
     `Address: ${customerAddress}\n\n`;
@@ -1740,7 +1953,6 @@ function sendWhatsAppOrder() {
       message +=
         `Pack/Weight: ${item.selectedOption}\n`;
 
-
       message +=
         `Quantity: ${item.quantity}\n`;
 
@@ -1761,7 +1973,6 @@ function sendWhatsAppOrder() {
         message +=
           "Rate: Today's Rate - Please Confirm\n";
 
-
         hasTodayRate = true;
 
       } else {
@@ -1777,7 +1988,6 @@ function sendWhatsAppOrder() {
 
         message +=
           `Price: ₹${formatPrice(item.price)}\n`;
-
 
         message +=
           `Subtotal: ₹${formatPrice(itemTotal)}\n`;
@@ -1854,7 +2064,6 @@ if (searchInput) {
 
       searchText =
         event.target.value.trim();
-
 
       displayProducts();
 
@@ -1974,6 +2183,13 @@ if (currentYear) {
    INITIAL LOAD
 ========================================================= */
 
+/*
+  First show static products immediately.
+  Then Firebase updates matching products.
+*/
+
 displayProducts();
 
 updateCart();
+
+loadFirebaseProducts();
