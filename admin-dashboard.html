@@ -367,6 +367,543 @@ body{
 .delivery-value{font-weight:bold;color:#0d88ad}
 .delivery-actions{display:flex;flex-direction:column;gap:7px}
 .delivery-actions button{border:0;padding:9px;border-radius:7px;cursor:pointer;font-weight:bold}
+/* DELIVERY SLOT AVAILABILITY */
+
+.slot-list{
+  display:grid;
+  gap:12px;
+}
+
+.slot-card{
+  border:1px solid #e2e8ec;
+  border-radius:12px;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 150px;
+  align-items:center;
+  gap:12px;
+}
+
+.slot-name{
+  font-weight:bold;
+  font-size:16px;
+}
+
+.slot-meta{
+  font-size:12px;
+  color:#6f7f88;
+  margin-top:4px;
+}
+
+.slot-actions button{
+  width:100%;
+  border:0;
+  padding:10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+@media(max-width:700px){.delivery-card{grid-template-columns:1fr}.delivery-actions{display:grid;grid-template-columns:1fr 1fr}}
+
+@media(max-width:700px){
+
+  .stats{grid-template-columns:1fr}
+
+  .form-grid{grid-template-columns:1fr}
+
+  .full{grid-column:auto}
+
+  .product{
+    grid-template-columns:55px 1fr;
+  }
+
+  .product img{
+    width:52px;
+    height:52px;
+  }
+
+  .price-box,
+  .stock-box,
+  .actions{
+    grid-column:1/-1;
+  }
+
+  .actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .slot-card{
+    grid-template-columns:1fr;
+  }
+
+  .brand h1{font-size:16px}
+
+  .top-buttons{
+    width:100%;
+  }
+
+  .top-buttons button{
+    flex:1;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+
+<div class="brand">
+  <img src="logo.png" alt="The Macchi Mart Logo">
+
+  <div>
+    <h1>The Macchi Mart</h1>
+    <p>Admin Control Panel</p>
+  </div>
+</div>
+
+<button id="logoutBtn" class="logout-btn">
+  Logout
+</button>
+
+</header>
+
+
+<main class="container">
+
+<section class="welcome">
+  <h2>Dashboard</h2>
+  <p>Manage products, fish rates and stock.</p>
+</section>
+
+<div id="statusMessage" class="status"></div>
+
+
+<!-- SITE MAINTENANCE -->
+<section class="section" id="maintenanceSection">
+  <div class="section-title">
+    <div>
+      <h3>ðŸ›  Website Maintenance Mode</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">
+        Put the customer website under maintenance without blocking this Admin Dashboard.
+      </p>
+    </div>
+    <span
+      id="maintenanceStatusBadge"
+      style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;background:#dcf5e6;color:#14743b;"
+    >
+      WEBSITE LIVE
+    </span>
+  </div>
+
+  <div class="form-group full">
+    <label>Maintenance Message</label>
+    <textarea
+      id="maintenanceMessage"
+      placeholder="Example: We are updating our shop. Please check back shortly."
+    >We are updating our shop. Please check back shortly.</textarea>
+  </div>
+
+  <div class="form-actions">
+    <button id="maintenanceToggleBtn" class="btn red">
+      Turn Maintenance ON
+    </button>
+    <button id="saveMaintenanceMessageBtn" class="btn primary">
+      Save Message
+    </button>
+  </div>
+
+  <p style="color:#667784;font-size:12px;margin-top:12px;line-height:1.5;">
+    When Maintenance is ON, customers will see a branded maintenance screen and shopping will be blocked.
+    Admin login and this dashboard will continue working.
+  </p>
+</section>
+
+
+<section class="stats">
+
+<div class="stat-card">
+  <span>Total Products</span>
+  <strong id="totalProducts">0</strong>
+</div>
+
+<div class="stat-card">
+  <span>In Stock</span>
+  <strong id="inStockCount">0</strong>
+</div>
+
+<div class="stat-card">
+  <span>Out of Stock</span>
+  <strong id="outStockCount">0</strong>
+</div>
+
+<div class="stat-card">
+  <span>Low Stock</span>
+  <strong id="lowStockCount">0</strong>
+</div>
+
+</section>
+
+
+<!-- PRODUCT MANAGEMENT -->
+
+<section class="section">
+
+<div class="section-title">
+
+  <div>
+    <h3>Product Management</h3>
+  </div>
+
+  <button id="openAddBtn" class="btn green">
+    + Add New Product
+  </button>
+
+</div>
+
+
+<div id="productForm" class="product-form">
+
+<h3 id="formTitle" style="margin-bottom:18px;">
+  Add New Product
+</h3>
+
+<div class="form-grid">
+
+<div class="form-group">
+<label>Product Name *</label>
+<input id="productName" type="text" placeholder="Example: Surmai">
+</div>
+
+<div class="form-group">
+<label>Marathi Name</label>
+<input id="marathiName" type="text" placeholder="à¤‰à¤¦à¤¾. à¤¸à¥à¤°à¤®à¤ˆ">
+</div>
+
+<div class="form-group">
+<label>Category *</label>
+<select id="category">
+  <option value="Fresh Fish">Fresh Fish</option>
+  <option value="Dry Fish">Dry Fish</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>Price / Rate *</label>
+<input id="productPrice" type="number" min="0" step="1" value="0">
+</div>
+
+<div class="form-group">
+<label>Price Type</label>
+<select id="priceType">
+  <option value="today">Today's Rate</option>
+  <option value="fixed">Fixed Rate</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>Unit</label>
+<input id="unit" type="text" value="kg" placeholder="kg / 100 pcs">
+</div>
+
+<div class="form-group">
+<label>Stock Quantity</label>
+<input id="stockQuantity" type="number" min="0" step="0.01" placeholder="Example: 8">
+</div>
+
+<div class="form-group">
+<label>Stock Unit</label>
+<input id="stockUnit" type="text" value="kg" placeholder="kg / packs / pcs">
+</div>
+
+<div class="form-group">
+<label>Low Stock Alert At</label>
+<input id="lowStockThreshold" type="number" min="0" step="0.01" value="2">
+</div>
+
+<div class="form-group full">
+<label>Weight / Quantity Options</label>
+<input
+  id="options"
+  type="text"
+  placeholder="250g, 500g, 1kg"
+>
+</div>
+
+<div class="form-group full">
+<label>Image Path</label>
+<input
+  id="image"
+  type="text"
+  placeholder="images/surmai.jpg"
+>
+</div>
+
+<div class="form-group full">
+<label>Description</label>
+<textarea
+  id="description"
+  placeholder="Product description..."
+></textarea>
+</div>
+
+<div class="form-group">
+<label>Display Order</label>
+<input id="sortOrder" type="number" min="1" value="1">
+</div>
+
+<div class="form-group">
+<label>Options</label>
+
+<div class="check-row">
+
+<label>
+<input id="cleaning" type="checkbox">
+Cleaning Available
+</label>
+
+<label>
+<input id="inStock" type="checkbox" checked>
+In Stock
+</label>
+
+</div>
+</div>
+
+</div>
+
+
+<div class="form-actions">
+
+<button id="saveProductBtn" class="btn green">
+  Save Product
+</button>
+
+<button id="cancelFormBtn" class="btn gray">
+  Cancel
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- PRODUCTS LIST -->
+
+<section class="section">
+
+<div class="section-title">
+
+<h3>Products & Today's Rates</h3>
+
+<div class="top-buttons">
+
+<button id="refreshBtn" class="btn primary">
+  Refresh
+</button>
+
+</div>
+
+</div>
+
+<div id="productsContainer" class="products">
+
+<div class="loading">
+  Loading products...
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- DELIVERY MANAGEMENT -->
+<section class="section">
+  <div class="section-title">
+    <div>
+      <h3>ðŸšš Delivery Management</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">Manage delivery areas, charges and minimum order.</p>
+    </div>
+    <button id="openDeliveryBtn" class="btn green">+ Add Delivery Area</button>
+  </div>
+
+  <div id="deliveryForm" class="delivery-form">
+    <h3 id="deliveryFormTitle" style="margin-bottom:18px;">Add Delivery Area</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Area Name *</label>
+        <input id="deliveryAreaName" type="text" placeholder="Example: Vile Parle">
+      </div>
+      <div class="form-group">
+        <label>Delivery Charge â‚¹ *</label>
+        <input id="deliveryCharge" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="form-group">
+        <label>Minimum Order â‚¹</label>
+        <input id="minimumOrder" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="check-row">
+          <label><input id="deliveryActive" type="checkbox" checked> Delivery Active</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button id="saveDeliveryBtn" class="btn green">Save Delivery Area</button>
+      <button id="cancelDeliveryBtn" class="btn gray">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">
+    <h3>Delivery Areas & Charges</h3>
+    <button id="refreshDeliveryBtn" class="btn primary">Refresh</button>
+  </div>
+  <div id="deliveryContainer" class="delivery-list">
+    <div class="loading">Loading delivery areas...</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">
+    <div>
+      <h3>â° Delivery Slot Availability</h3>
+      <p style="color:#667784;font-size:13px;margin-top:5px;">
+        Turn time slots ON/OFF. These slots apply to Sunday, Wednesday and Friday deliveries.
+      </p>
+    </div>
+    <button id="refreshSlotsBtn" class="btn primary">Refresh Slots</button>
+  </div>
+
+  <div id="slotContainer" class="slot-list">
+    <div class="loading">Loading delivery slots...</div>
+  </div>
+</section>
+
+</main>
+
+
+<script type="module">
+
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy
+} from
+"https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
+  authDomain: "the-macchi-mart-7be07.firebaseapp.com",
+  projectId: "the-macchi-mart-7be07",
+  storageBucket: "the-macchi-mart-7be07.firebasestorage.app",
+  messagingSenderId: "981386840283",
+  appId: "1:981386840283:web:967a71c447387f612564fe",
+  measurementId: "G-ZLWDLY3QZ7"
+};
+
+
+const ADMIN_UID =
+"uwduM2c4pSY1fRxAjzcZHUOiNZC3";
+
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
+const productsContainer =
+document.getElementById("productsContainer");
+
+const statusMessage =
+document.getElementById("statusMessage");
+
+const totalProducts =
+document.getElementById("totalProducts");
+
+const inStockCount =
+document.getElementById("inStockCount");
+
+const outStockCount =
+document.getElementById("outStockCount");
+
+const lowStockCount =
+document.getElementById("lowStockCount");
+
+const productForm =
+document.getElementById("productForm");
+
+const formTitle =
+document.getElementById("formTitle");
+
+let editingProductId = null;
+let editingDeliveryId = null;
+
+const deliveryContainer = document.getElementById("deliveryContainer");
+const deliveryForm = document.getElementById("deliveryForm");
+const deliveryFormTitle = document.getElementById("deliveryFormTitle");
+
+const slotContainer = document.getElementById("slotContainer");
+
+const maintenanceStatusBadge = document.getElementById("maintenanceStatusBadge");
+const maintenanceMessage = document.getElementById("maintenanceMessage");
+const maintenanceToggleBtn = document.getElementById("maintenanceToggleBtn");
+const saveMaintenanceMessageBtn = document.getElementById("saveMaintenanceMessageBtn");
+
+let currentMaintenanceMode = false;
+
+const DEFAULT_DELIVERY_SLOTS = [
+  { id: "7-8", label: "7:00 AM - 8:00 AM", sortOrder: 1 },
+  { id: "8-9", label: "8:00 AM - 9:00 AM", sortOrder: 2 },
+  { id: "9-10", label: "9:00 AM - 10:00 AM", sortOrder: 3 },
+  { id: "10-11", label: "10:00 AM - 11:00 AM", sortOrder: 4 },
+  { id: "11-12", label: "11:00 AM - 12:00 PM", sortOrder: 5 }
+];
+
+
+/* STATUS */
+
+function showStatus(message,type){
+
+  statusMessage.textContent=message;
+  statusMessage.className="status "+type;
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+
+  setTimeout(()=>{
+    statusMessage.className="status";
+  },4000);
+}
+
+
 /* WEBSITE MAINTENANCE MODE */
 
 function renderMaintenanceStatus(){
@@ -516,541 +1053,6 @@ if(saveMaintenanceMessageBtn){
 }
 
 
-/* DELIVERY SLOT AVAILABILITY */
-
-.slot-list{
-  display:grid;
-  gap:12px;
-}
-
-.slot-card{
-  border:1px solid #e2e8ec;
-  border-radius:12px;
-  padding:14px 16px;
-  display:grid;
-  grid-template-columns:1fr 150px;
-  align-items:center;
-  gap:12px;
-}
-
-.slot-name{
-  font-weight:bold;
-  font-size:16px;
-}
-
-.slot-meta{
-  font-size:12px;
-  color:#6f7f88;
-  margin-top:4px;
-}
-
-.slot-actions button{
-  width:100%;
-  border:0;
-  padding:10px;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-@media(max-width:700px){.delivery-card{grid-template-columns:1fr}.delivery-actions{display:grid;grid-template-columns:1fr 1fr}}
-
-@media(max-width:700px){
-
-  .stats{grid-template-columns:1fr}
-
-  .form-grid{grid-template-columns:1fr}
-
-  .full{grid-column:auto}
-
-  .product{
-    grid-template-columns:55px 1fr;
-  }
-
-  .product img{
-    width:52px;
-    height:52px;
-  }
-
-  .price-box,
-  .stock-box,
-  .actions{
-    grid-column:1/-1;
-  }
-
-  .actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
-
-  .slot-card{
-    grid-template-columns:1fr;
-  }
-
-  .brand h1{font-size:16px}
-
-  .top-buttons{
-    width:100%;
-  }
-
-  .top-buttons button{
-    flex:1;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<header class="header">
-
-<div class="brand">
-  <img src="logo.png" alt="The Macchi Mart Logo">
-
-  <div>
-    <h1>The Macchi Mart</h1>
-    <p>Admin Control Panel</p>
-  </div>
-</div>
-
-<button id="logoutBtn" class="logout-btn">
-  Logout
-</button>
-
-</header>
-
-
-<main class="container">
-
-<section class="welcome">
-  <h2>Dashboard</h2>
-  <p>Manage products, fish rates and stock.</p>
-</section>
-
-<div id="statusMessage" class="status"></div>
-
-
-<!-- SITE MAINTENANCE -->
-<section class="section" id="maintenanceSection">
-  <div class="section-title">
-    <div>
-      <h3>🛠 Website Maintenance Mode</h3>
-      <p style="color:#667784;font-size:13px;margin-top:5px;">
-        Put the customer website under maintenance without blocking this Admin Dashboard.
-      </p>
-    </div>
-    <span
-      id="maintenanceStatusBadge"
-      style="padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;background:#dcf5e6;color:#14743b;"
-    >
-      WEBSITE LIVE
-    </span>
-  </div>
-
-  <div class="form-group full">
-    <label>Maintenance Message</label>
-    <textarea
-      id="maintenanceMessage"
-      placeholder="Example: We are updating our shop. Please check back shortly."
-    >We are updating our shop. Please check back shortly.</textarea>
-  </div>
-
-  <div class="form-actions">
-    <button id="maintenanceToggleBtn" class="btn red">
-      Turn Maintenance ON
-    </button>
-    <button id="saveMaintenanceMessageBtn" class="btn primary">
-      Save Message
-    </button>
-  </div>
-
-  <p style="color:#667784;font-size:12px;margin-top:12px;line-height:1.5;">
-    When Maintenance is ON, customers will see a branded maintenance screen and shopping will be blocked.
-    Admin login and this dashboard will continue working.
-  </p>
-</section>
-
-
-<section class="stats">
-
-<div class="stat-card">
-  <span>Total Products</span>
-  <strong id="totalProducts">0</strong>
-</div>
-
-<div class="stat-card">
-  <span>In Stock</span>
-  <strong id="inStockCount">0</strong>
-</div>
-
-<div class="stat-card">
-  <span>Out of Stock</span>
-  <strong id="outStockCount">0</strong>
-</div>
-
-<div class="stat-card">
-  <span>Low Stock</span>
-  <strong id="lowStockCount">0</strong>
-</div>
-
-</section>
-
-
-<!-- PRODUCT MANAGEMENT -->
-
-<section class="section">
-
-<div class="section-title">
-
-  <div>
-    <h3>Product Management</h3>
-  </div>
-
-  <button id="openAddBtn" class="btn green">
-    + Add New Product
-  </button>
-
-</div>
-
-
-<div id="productForm" class="product-form">
-
-<h3 id="formTitle" style="margin-bottom:18px;">
-  Add New Product
-</h3>
-
-<div class="form-grid">
-
-<div class="form-group">
-<label>Product Name *</label>
-<input id="productName" type="text" placeholder="Example: Surmai">
-</div>
-
-<div class="form-group">
-<label>Marathi Name</label>
-<input id="marathiName" type="text" placeholder="उदा. सुरमई">
-</div>
-
-<div class="form-group">
-<label>Category *</label>
-<select id="category">
-  <option value="Fresh Fish">Fresh Fish</option>
-  <option value="Dry Fish">Dry Fish</option>
-</select>
-</div>
-
-<div class="form-group">
-<label>Price / Rate *</label>
-<input id="productPrice" type="number" min="0" step="1" value="0">
-</div>
-
-<div class="form-group">
-<label>Price Type</label>
-<select id="priceType">
-  <option value="today">Today's Rate</option>
-  <option value="fixed">Fixed Rate</option>
-</select>
-</div>
-
-<div class="form-group">
-<label>Unit</label>
-<input id="unit" type="text" value="kg" placeholder="kg / 100 pcs">
-</div>
-
-<div class="form-group">
-<label>Stock Quantity</label>
-<input id="stockQuantity" type="number" min="0" step="0.01" placeholder="Example: 8">
-</div>
-
-<div class="form-group">
-<label>Stock Unit</label>
-<input id="stockUnit" type="text" value="kg" placeholder="kg / packs / pcs">
-</div>
-
-<div class="form-group">
-<label>Low Stock Alert At</label>
-<input id="lowStockThreshold" type="number" min="0" step="0.01" value="2">
-</div>
-
-<div class="form-group full">
-<label>Weight / Quantity Options</label>
-<input
-  id="options"
-  type="text"
-  placeholder="250g, 500g, 1kg"
->
-</div>
-
-<div class="form-group full">
-<label>Image Path</label>
-<input
-  id="image"
-  type="text"
-  placeholder="images/surmai.jpg"
->
-</div>
-
-<div class="form-group full">
-<label>Description</label>
-<textarea
-  id="description"
-  placeholder="Product description..."
-></textarea>
-</div>
-
-<div class="form-group">
-<label>Display Order</label>
-<input id="sortOrder" type="number" min="1" value="1">
-</div>
-
-<div class="form-group">
-<label>Options</label>
-
-<div class="check-row">
-
-<label>
-<input id="cleaning" type="checkbox">
-Cleaning Available
-</label>
-
-<label>
-<input id="inStock" type="checkbox" checked>
-In Stock
-</label>
-
-</div>
-</div>
-
-</div>
-
-
-<div class="form-actions">
-
-<button id="saveProductBtn" class="btn green">
-  Save Product
-</button>
-
-<button id="cancelFormBtn" class="btn gray">
-  Cancel
-</button>
-
-</div>
-
-</div>
-
-</section>
-
-
-<!-- PRODUCTS LIST -->
-
-<section class="section">
-
-<div class="section-title">
-
-<h3>Products & Today's Rates</h3>
-
-<div class="top-buttons">
-
-<button id="refreshBtn" class="btn primary">
-  Refresh
-</button>
-
-</div>
-
-</div>
-
-<div id="productsContainer" class="products">
-
-<div class="loading">
-  Loading products...
-</div>
-
-</div>
-
-</section>
-
-
-
-<!-- DELIVERY MANAGEMENT -->
-<section class="section">
-  <div class="section-title">
-    <div>
-      <h3>🚚 Delivery Management</h3>
-      <p style="color:#667784;font-size:13px;margin-top:5px;">Manage delivery areas, charges and minimum order.</p>
-    </div>
-    <button id="openDeliveryBtn" class="btn green">+ Add Delivery Area</button>
-  </div>
-
-  <div id="deliveryForm" class="delivery-form">
-    <h3 id="deliveryFormTitle" style="margin-bottom:18px;">Add Delivery Area</h3>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Area Name *</label>
-        <input id="deliveryAreaName" type="text" placeholder="Example: Vile Parle">
-      </div>
-      <div class="form-group">
-        <label>Delivery Charge ₹ *</label>
-        <input id="deliveryCharge" type="number" min="0" step="1" value="0">
-      </div>
-      <div class="form-group">
-        <label>Minimum Order ₹</label>
-        <input id="minimumOrder" type="number" min="0" step="1" value="0">
-      </div>
-      <div class="form-group">
-        <label>Status</label>
-        <div class="check-row">
-          <label><input id="deliveryActive" type="checkbox" checked> Delivery Active</label>
-        </div>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button id="saveDeliveryBtn" class="btn green">Save Delivery Area</button>
-      <button id="cancelDeliveryBtn" class="btn gray">Cancel</button>
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-title">
-    <h3>Delivery Areas & Charges</h3>
-    <button id="refreshDeliveryBtn" class="btn primary">Refresh</button>
-  </div>
-  <div id="deliveryContainer" class="delivery-list">
-    <div class="loading">Loading delivery areas...</div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-title">
-    <div>
-      <h3>⏰ Delivery Slot Availability</h3>
-      <p style="color:#667784;font-size:13px;margin-top:5px;">
-        Turn time slots ON/OFF. These slots apply to Sunday, Wednesday and Friday deliveries.
-      </p>
-    </div>
-    <button id="refreshSlotsBtn" class="btn primary">Refresh Slots</button>
-  </div>
-
-  <div id="slotContainer" class="slot-list">
-    <div class="loading">Loading delivery slots...</div>
-  </div>
-</section>
-
-</main>
-
-
-<script type="module">
-
-import { initializeApp } from
-"https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from
-"https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy
-} from
-"https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-
-
-const firebaseConfig = {
-  apiKey: "AIzaSyD8kfHBr-Kwc-Jf2HHtyBCllsr4A8ev6f0",
-  authDomain: "the-macchi-mart-7be07.firebaseapp.com",
-  projectId: "the-macchi-mart-7be07",
-  storageBucket: "the-macchi-mart-7be07.firebasestorage.app",
-  messagingSenderId: "981386840283",
-  appId: "1:981386840283:web:967a71c447387f612564fe",
-  measurementId: "G-ZLWDLY3QZ7"
-};
-
-
-const ADMIN_UID =
-"uwduM2c4pSY1fRxAjzcZHUOiNZC3";
-
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-
-const productsContainer =
-document.getElementById("productsContainer");
-
-const statusMessage =
-document.getElementById("statusMessage");
-
-const totalProducts =
-document.getElementById("totalProducts");
-
-const inStockCount =
-document.getElementById("inStockCount");
-
-const outStockCount =
-document.getElementById("outStockCount");
-
-const lowStockCount =
-document.getElementById("lowStockCount");
-
-const productForm =
-document.getElementById("productForm");
-
-const formTitle =
-document.getElementById("formTitle");
-
-let editingProductId = null;
-let editingDeliveryId = null;
-
-const deliveryContainer = document.getElementById("deliveryContainer");
-const deliveryForm = document.getElementById("deliveryForm");
-const deliveryFormTitle = document.getElementById("deliveryFormTitle");
-
-const slotContainer = document.getElementById("slotContainer");
-
-const maintenanceStatusBadge = document.getElementById("maintenanceStatusBadge");
-const maintenanceMessage = document.getElementById("maintenanceMessage");
-const maintenanceToggleBtn = document.getElementById("maintenanceToggleBtn");
-const saveMaintenanceMessageBtn = document.getElementById("saveMaintenanceMessageBtn");
-
-let currentMaintenanceMode = false;
-
-const DEFAULT_DELIVERY_SLOTS = [
-  { id: "7-8", label: "7:00 AM - 8:00 AM", sortOrder: 1 },
-  { id: "8-9", label: "8:00 AM - 9:00 AM", sortOrder: 2 },
-  { id: "9-10", label: "9:00 AM - 10:00 AM", sortOrder: 3 },
-  { id: "10-11", label: "10:00 AM - 11:00 AM", sortOrder: 4 },
-  { id: "11-12", label: "11:00 AM - 12:00 PM", sortOrder: 5 }
-];
-
-
-/* STATUS */
-
-function showStatus(message,type){
-
-  statusMessage.textContent=message;
-  statusMessage.className="status "+type;
-
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
-
-  setTimeout(()=>{
-    statusMessage.className="status";
-  },4000);
-}
 
 
 /* SECURITY */
@@ -1193,7 +1195,7 @@ function renderProducts(products){
         stockStatusText="Out of Stock";
         stockStatusClass="stock-zero";
       }else if(Number(stockQuantity)<=lowStockThreshold){
-        stockStatusText=`⚠ Low Stock: ${stockQuantity} ${stockUnit}`;
+        stockStatusText=`âš  Low Stock: ${stockQuantity} ${stockUnit}`;
         stockStatusClass="stock-low";
       }else{
         stockStatusText=`Stock: ${stockQuantity} ${stockUnit}`;
@@ -2106,8 +2108,8 @@ function renderDeliveryAreas(areas){
         <div class="delivery-name">${area.name||"Unnamed Area"}</div>
         <div class="delivery-meta">${area.active!==false ? "Delivery Active" : "Delivery OFF"}</div>
       </div>
-      <div><div class="delivery-meta">Delivery Charge</div><div class="delivery-value">₹${Number(area.charge||0)}</div></div>
-      <div><div class="delivery-meta">Minimum Order</div><div class="delivery-value">₹${Number(area.minimumOrder||0)}</div></div>
+      <div><div class="delivery-meta">Delivery Charge</div><div class="delivery-value">â‚¹${Number(area.charge||0)}</div></div>
+      <div><div class="delivery-meta">Minimum Order</div><div class="delivery-value">â‚¹${Number(area.minimumOrder||0)}</div></div>
       <div class="delivery-actions">
         <button class="${area.active!==false ? "stock-on" : "stock-off"}" data-delivery-status="${id}" data-value="${area.active!==false}">${area.active!==false ? "ON" : "OFF"}</button>
         <button class="edit-btn" data-delivery-edit="${id}">Edit</button>
